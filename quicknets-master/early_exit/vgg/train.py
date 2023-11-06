@@ -8,8 +8,8 @@ import numpy as np
 import sys
 import time
 
-sys.path.append('..')
-print('hello')
+sys.path.append('../')
+print(sys.path)
 from datasets import IndexedCIFAR10, IndexedCIFAR100
 from train_utils import train_decision_layer, train_epoch, train_epoch_joint_loss, get_minimal_trained_indices
 from torchvision import datasets, transforms
