@@ -127,3 +127,14 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+
+data_batch*
+test_batch
+*data\cifar*
+*batches.meta
+*.tar.gz
+readme.html
+
+

@@ -60,6 +60,9 @@ def train(seed=0, batch_size=128, save_params=False, method='layer_wise', config
     params = [dataset, seed, batch_size, method, config,  lr, remove_data, lr_scheduler, sample_learned_data,
               decision_layer, batch_norm, output_layers, weight_decay]
     model_name = '_'.join([str(x) for x in params])
+    if output_layers == None:
+        output_layers =[0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1]
+
 
     # Create directories
     if not os.path.exists('results'):
