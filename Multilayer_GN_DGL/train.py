@@ -184,7 +184,7 @@ def main():
     if not args.no_log:
 		# add your wandb api key here
         wandb.login(key="209874adddd9a0c1366d79d41f333f6be60ebf96")
-        wandb.init(project='DGL-splits-resnet', entity='DGL', name=exp_name)
+        wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
         config = wandb.config
         config.args = args
 
