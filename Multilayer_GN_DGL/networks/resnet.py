@@ -1061,6 +1061,7 @@ def resnet20(**kwargs):
     return model
 
 def resnet32(**kwargs):
+    print("--- RUNNING SAMNET ON RESNET32 ---")
     model = SamNet(BasicBlock, [5, 5, 5], arch='resnet32', **kwargs)
     return model
 
