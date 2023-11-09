@@ -216,7 +216,7 @@ def main():
     else:
         raise NotImplementedError
     
-    print('module',[module for module in model.modules() if not isinstance(module, nn.Sequential)])
+    print('module',[module for module in model.modules() if not isinstance(module, torch.nn.Sequential)])
 
     if not os.path.isdir(check_point):
         mkdir_p(check_point)
