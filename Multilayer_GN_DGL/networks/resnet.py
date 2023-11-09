@@ -171,6 +171,7 @@ class InfoProResNet(nn.Module):
                             exec('self.decoder_' + str(module_index) + '_' + str(layer_index) + '_' + str(group_index) +
                                  '= Decoder(wide_list[module_index], image_size, widen=self.aux_net_widen)')
 
+                        print("!!! " + 'self.aux_classifier_' + str(module_index) + '_' + str(layer_index) + '_' + str(group_index) + " !!!")
                         exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) + '_' + str(group_index) +
                              '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
                              'loss_mode=local_loss_mode, class_num=class_num, '
