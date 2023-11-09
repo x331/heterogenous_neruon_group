@@ -310,31 +310,32 @@ def main():
     print(model)
 
     # Flop Counter Code
-    if args.model == 'resnet':
-        flop_count_model = eval('networks.resnet.resnet' + str(args.layers)) \
-            (local_module_num=args.local_module_num,
-             batch_size=training_configurations[args.model]['batch_size'],
-             image_size=image_size,
-             balanced_memory=args.balanced_memory,
-             dataset=args.dataset,
-             class_num=num_classes,
-             wide_list=wide_list,
-             dropout_rate=args.droprate,
-             aux_net_config=args.aux_net_config,
-             local_loss_mode=args.local_loss_mode,
-             aux_net_widen=args.aux_net_widen,
-             aux_net_feature_dim=args.aux_net_feature_dim,
-             cuda=cuda, infopro=args.infopro,
-             groups=args.groups, lambdas=args.lambdas,
-             detach=args.detach, detach_ratio=args.detach_ratio, div_reg=args.div_reg,
-             div_temp=args.div_temp, div_weight=args.div_weight, device=torch.device("cpu"))
-        flop_count_model.train()
-        flop_count_model(img=torch.rand((1,3,image_size,image_size)),
-              target=torch.tensor([0]), count_flops=True)
+    # Remove Flop count code for now
+    # if args.model == 'resnet':
+    #     flop_count_model = eval('networks.resnet.resnet' + str(args.layers)) \
+    #         (local_module_num=args.local_module_num,
+    #          batch_size=training_configurations[args.model]['batch_size'],
+    #          image_size=image_size,
+    #          balanced_memory=args.balanced_memory,
+    #          dataset=args.dataset,
+    #          class_num=num_classes,
+    #          wide_list=wide_list,
+    #          dropout_rate=args.droprate,
+    #          aux_net_config=args.aux_net_config,
+    #          local_loss_mode=args.local_loss_mode,
+    #          aux_net_widen=args.aux_net_widen,
+    #          aux_net_feature_dim=args.aux_net_feature_dim,
+    #          cuda=cuda, infopro=args.infopro,
+    #          groups=args.groups, lambdas=args.lambdas,
+    #          detach=args.detach, detach_ratio=args.detach_ratio, div_reg=args.div_reg,
+    #          div_temp=args.div_temp, div_weight=args.div_weight, device=torch.device("cpu"))
+    #     flop_count_model.train()
+    #     flop_count_model(img=torch.rand((1,3,image_size,image_size)),
+    #           target=torch.tensor([0]), count_flops=True)
 
-        flop_count_model.eval()
-        flop_count_model(img=torch.rand((1, 3, image_size, image_size)),
-              target=torch.tensor([0]), count_flops=True, eval_ensemble=args.eval_ensemble)
+    #     flop_count_model.eval()
+    #     flop_count_model(img=torch.rand((1, 3, image_size, image_size)),
+    #           target=torch.tensor([0]), count_flops=True, eval_ensemble=args.eval_ensemble)
 
     ########
 
