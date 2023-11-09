@@ -262,10 +262,13 @@ class InfoProResNet(nn.Module):
 
     def initialize_flop_counter(self):
       flop_counter = {}
-      for k in range(self.local_module_num - 1):
+      for k in range(self.local_module_num ):
           for g in range(self.groups):
             flop_counter[str(k) + '_' + str(g)] = 0
+    #   if self.local_module_num  == 1:
+    #       flop_counter['0_0'] = 0
       flop_counter['last_head'] = 0
+      
       return flop_counter
 
     def forward_original(self, img):
@@ -491,7 +494,6 @@ class InfoProResNet(nn.Module):
                                         verbose=False)
                             str_x += "\n" + str(stage_i) + "," + str(layer_i) + ", " + str((macs/self.groups))
                             for group_i in range(self.groups):
-                                print(str(local_module_i) + '_' + str(group_i))
                                 flop_counter[str(local_module_i) + '_' + str(group_i)] += macs / self.groups
                     #########
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
