@@ -647,7 +647,6 @@ class InfoProResNet(nn.Module):
             ########
 
             logits = self.head(x)
-            print(logits.shape)
             all_logits[str(local_module_i)] = [logits]
             loss = self.criterion_ce(logits, target)
             if self.training:
@@ -659,7 +658,7 @@ class InfoProResNet(nn.Module):
                 print_flops(flop_counter)
             #########
             # print(str_x)
-            print(all_logits)
+            # print(all_logits)
             if eval_ensemble:
                 logits = get_ensemble_logits(all_logits, self.device, ensemble_type)
             return logits, loss
