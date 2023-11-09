@@ -134,10 +134,10 @@ parser.add_argument('--path', default='../../data', type=str, help='path')
 parser.add_argument('--data-path ', default='../../data', type=str, help='data_path')
 
 #I added
-parser.add_argument('--dataloader_workers', default=2, type=int,
+parser.add_argument('--dataloader_workers', default=12, type=int,
                     help='number of works dataloader should have '
-                         '(default: 2)')
-parser.add_argument('--train_total_epochs', default=10, type=int,
+                         '(default: 12)')
+parser.add_argument('--train_total_epochs', default=160, type=int,
                     help='number of epochs to train for'
                          '(default: 10)')
 
