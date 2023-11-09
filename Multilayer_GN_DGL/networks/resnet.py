@@ -711,7 +711,9 @@ class SamNet(InfoProResNet):
         if count_flops:
             flop_counter = self.initialize_flop_counter()
 
+        print("Starting training...")
         if self.training or eval_ensemble:
+            print("started training stuff!!!")
             stage_i = 0
             layer_i = 0
             local_module_i = 0
@@ -856,16 +858,19 @@ class SamNet(InfoProResNet):
                     # for a in range(list(self.conv1.parameters())[0].shape[0]):
                     #     print(a, torch.sum(abs(list(self.conv1.parameters())[0].grad[a])))
 
+            print("looping through frozen layers...")
             for s in range(1, curr_stage):
                 for l in range(curr_layer):
                     # get output of previous layers
                     x = eval('self.layer' + str(s))[l](x)
 
-
+            print("got hidden layer, passing through current layer...")
             # todo: wtf does this mean
             if local_module_i <= self.local_module_num - 2:
+                print("starting weird if statement...")
                 if self.infopro_config[local_module_i][0] == curr_stage \
                         and self.infopro_config[local_module_i][1] == curr_layer:
+                    print("got past weird if statement...")
                     ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
 
                     loss_ixx = 0
