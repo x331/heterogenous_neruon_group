@@ -695,7 +695,7 @@ class InfoProResNet(nn.Module):
 
 class SamNet(InfoProResNet):
     def __init__(self, block, layers, arch, **kwargs):
-        super(SamNet, self).__init__(block, layers, arch, **kwargs)
+        super(SamNet, self).__init__(block, layers, arch, kwargs)
 
     def forward(self, img, target=None,
                 ixx_1=0, ixy_1=0,
@@ -1011,21 +1011,24 @@ class SamNet(InfoProResNet):
                 flop_counter['last_head'] += macs
 
             ########
+            # remove because it's for the last layer and not needed?
+            # logits = self.head(x)
+            # all_logits[str(local_module_i)] = [logits]
+            # loss = self.criterion_ce(logits, target)
+            # if self.training:
+            #     loss.backward()
 
-            logits = self.head(x)
-            all_logits[str(local_module_i)] = [logits]
-            loss = self.criterion_ce(logits, target)
-            if self.training:
-                loss.backward()
-
-            # Flop counter code
-            if count_flops:
-                print("Training time stats: ")
-                print_flops(flop_counter)
+            # # Flop counter code
+            # if count_flops:
+            #     print("Training time stats: ")
+            #     print_flops(flop_counter)
             #########
             # print(str_x)
             if eval_ensemble:
                 logits = get_ensemble_logits(all_logits, self.device, ensemble_type)
+            else:
+                # changed this to get the logits of the layer's aux classifier
+                logits = all_logits["1"][0]
             return logits, loss
 
         else:
