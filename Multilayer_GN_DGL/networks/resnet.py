@@ -1061,7 +1061,7 @@ def resnet20(**kwargs):
     return model
 
 def resnet32(**kwargs):
-    model = InfoProResNet(BasicBlock, [5, 5, 5], arch='resnet32', **kwargs)
+    model = SamNet(BasicBlock, [5, 5, 5], arch='resnet32', **kwargs)
     return model
 
 
