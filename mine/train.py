@@ -315,7 +315,7 @@ def main():
     else:
         raise NotImplementedError
 
-    print(model)
+    # print(model)
 
     # Flop Counter Code
     if args.model == 'resnet':
