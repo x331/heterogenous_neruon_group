@@ -291,6 +291,7 @@ class InfoProResNet(nn.Module):
         all_logits = {}
         if count_flops:
             flop_counter = self.initialize_flop_counter()
+            print(flop_counter)
 
         if self.training or eval_ensemble:
             stage_i = 0
