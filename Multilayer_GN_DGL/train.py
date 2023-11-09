@@ -350,6 +350,7 @@ def main():
                                     nesterov=training_configurations[args.model]['nesterov'],
                                     weight_decay=training_configurations[args.model]['weight_decay']
                                 )
+    layers_array = model.layers
     if cuda:
         model = torch.nn.DataParallel(model).cuda()
     else:
@@ -376,7 +377,7 @@ def main():
     # TODO: this is where I will make it train block-wise
     
     for curr_stage in range(1, 4):
-        for curr_layer in range(model.layers[curr_stage]):
+        for curr_layer in range(layers_array[curr_stage]):
             for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
                 adjust_learning_rate(optimizer, epoch + 1)
                 # train for one epoch
