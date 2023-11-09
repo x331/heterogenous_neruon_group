@@ -307,6 +307,7 @@ class InfoProResNet(nn.Module):
                 #     flop_counter[str(local_module_i) + '_' + str(group_i)] += macs/ self.groups
             #######
 
+            # DGL, run input image through preliminary preprocess?
             x = self.conv1(img)
             x = self.bn1(x)
             x = self.relu(x)
@@ -420,6 +421,7 @@ class InfoProResNet(nn.Module):
                         all_logits[str(local_module_i)] = group_logits
                         loss = ixy_r * loss_ixy
                         if self.div_reg:
+                            # appplies to DGL
                             div_loss = div_loss_calc(group_logits, target, self.div_temp, self.device)
                             loss += self.div_weight * div_loss
 
@@ -457,6 +459,8 @@ class InfoProResNet(nn.Module):
                         # str_x += "\n" + str(stage_i) + "," + str(layer_i) + ", " + str((b)/self.groups)
                     #########
 
+                    # Where training of DGL actually starts
+                    
                     # Flop counter code
                     if count_flops:
                         ## Debug code block
@@ -492,6 +496,7 @@ class InfoProResNet(nn.Module):
                             for group_i in range(self.groups):
                                 flop_counter[str(local_module_i) + '_' + str(group_i)] += macs / self.groups
                     #########
+                    # output of forward pass through layer i
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
 
                     if local_module_i <= self.local_module_num - 2:
@@ -550,7 +555,7 @@ class InfoProResNet(nn.Module):
                                                     verbose=False)
                                                 flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
                                             ##########
-
+                                            # this is where loss for DGL aux classifier is calculated
                                             loss_temp, logits = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i))(x_detached, target)
                                             loss_ixy += loss_temp
                                             group_logits.append(logits)
@@ -686,6 +691,370 @@ class InfoProResNet(nn.Module):
             loss = self.criterion_ce(logits, target)
 
             return logits, loss
+
+
+class SamNet(InfoProResNet):
+    def __init__(self, block, layers, arch, kwargs):
+        super(SamNet, self).__init__(block, layers, arch, **kwargs)
+
+    def forward(self, img, target=None,
+                ixx_1=0, ixy_1=0,
+                ixx_2=0, ixy_2=0,
+                count_flops=False,
+                eval_ensemble=False,
+                ensemble_type='layerwise',
+                curr_layer=0,
+                curr_stage=1):
+
+        str_x = ""
+        all_logits = {}
+        if count_flops:
+            flop_counter = self.initialize_flop_counter()
+
+        if self.training or eval_ensemble:
+            stage_i = 0
+            layer_i = 0
+            local_module_i = 0
+
+            ## Flop counter code
+            if count_flops:
+                macs, _= get_model_complexity_info(nn.Sequential(self.conv1, self.bn1, self.relu),
+                                                     (img.shape[1], img.shape[2], img.shape[3]),
+                                                     as_strings=False, print_per_layer_stat=False, verbose=False)
+
+                # for group_i in range(self.groups):
+                #     flop_counter[str(local_module_i) + '_' + str(group_i)] += macs/ self.groups
+            #######
+
+            # DGL, run input image through preliminary preprocess?
+            x = self.conv1(img)
+            x = self.bn1(x)
+            x = self.relu(x)
+
+            if local_module_i <= self.local_module_num - 2:
+                if self.infopro_config[local_module_i][0] == stage_i \
+                        and self.infopro_config[local_module_i][1] == layer_i:
+                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+
+                    loss_ixx = 0
+                    loss_ixy = 0
+                    if self.infopro:
+                        assert self.groups==1, "Infopro is not supported with groups more than 1."
+                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio if self.lambdas else 1
+                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio if self.lambdas else 1
+                        for group_i in range(self.groups):
+
+                            # Flop counter code
+                            if count_flops:
+                                macs, _ = get_model_complexity_info(eval('self.decoder_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i)),
+                                                                    (x.shape[1], x.shape[2], x.shape[3]),
+                                                                    as_strings=False, print_per_layer_stat=False,
+                                                                    verbose=False)
+                                flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+
+                                macs, _ = get_model_complexity_info(eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i)),
+                                                                    (x.shape[1], x.shape[2], x.shape[3]),
+                                                                    as_strings=False, print_per_layer_stat=False,
+                                                                    verbose=False)
+                                flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+
+                            #######
+
+                            loss_ixx += eval('self.decoder_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i))(x, self._image_restore(img), for_flop_count=False)
+                            loss_temp, _ = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i))(x, target)
+                            loss_ixy += loss_temp
+                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                    else:
+                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio if self.lambdas else 1
+                        aux_in_channels = int(self.wide_list[stage_i]/self.groups)
+                        total_channels = self.wide_list[stage_i]
+
+                        group_logits = []
+                        for group_i in range(self.groups):
+                            ch_from = aux_in_channels * group_i
+                            ch_to = aux_in_channels * (group_i + 1)
+                            if self.detach:
+                                if self.groups==1 or self.detach_ratio == 1.0:
+                                    x_detached = x.clone().detach()
+                                    x_detached[:, ch_from:ch_to, :, :] = x[:, ch_from:ch_to, :, :].clone()
+
+                                    # Flop counter code
+                                    if count_flops:
+                                        macs, _ = get_model_complexity_info(eval(
+                                            'self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i)),
+                                            (x_detached.shape[1], x_detached.shape[2], x_detached.shape[3]),
+                                            as_strings=False, print_per_layer_stat=False,
+                                            verbose=False)
+                                        flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                    #########
+
+                                    loss_temp, logits = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i))(x_detached, target)
+                                    loss_ixy += loss_temp
+                                    group_logits.append(logits)
+                                else:
+                                    x_detached = []
+                                    current_ch_from = 0
+                                    for i in range(self.groups):
+                                        if i == group_i:
+                                            x_detached.append(x[:, ch_from:ch_to, :, :].clone())
+                                        else:
+                                            ch_from = aux_in_channels * i
+                                            ch_to = aux_in_channels * (i + 1)
+                                            x_detached_sliced = x[:, ch_from:ch_to, :, :].clone().detach()
+                                            current_ch_from = current_ch_from % (ch_to-ch_from)
+                                            no_channels = int(self.detach_ratio * (ch_to-ch_from))
+                                            x_detached.append(x_detached_sliced[:,current_ch_from:current_ch_from+no_channels ,:,:])
+                                            current_ch_from = current_ch_from + no_channels
+                                    x_detached = torch.cat(x_detached, dim=1)
+                                    # Flop counter code
+                                    if count_flops:
+                                        macs, _ = get_model_complexity_info(eval(
+                                            'self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(
+                                                group_i)),
+                                            (x_detached.shape[1], x_detached.shape[2], x_detached.shape[3]),
+                                            as_strings=False, print_per_layer_stat=False,
+                                            verbose=False)
+                                        flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                    #########
+
+                                    loss_temp, logits = eval(
+                                        'self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(
+                                            group_i))(x_detached, target)
+                                    loss_ixy += loss_temp
+                                    group_logits.append(logits)
+                            else:
+                                # Flop counter code
+                                if count_flops:
+                                    macs, _ = get_model_complexity_info(eval(
+                                        'self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i)),
+                                        (x[:, ch_from:ch_to, :, :].shape[1], x[:, ch_from:ch_to, :, :].shape[2], x[:, ch_from:ch_to, :, :].shape[3]),
+                                        as_strings=False, print_per_layer_stat=False,
+                                        verbose=False)
+                                    flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                #########
+
+                                loss_temp, logits = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i) + '_' + str(group_i))(x[:, ch_from:ch_to, :, :], target)
+                                loss_ixy += loss_temp
+                                group_logits.append(logits)
+
+                        all_logits[str(local_module_i)] = group_logits
+                        loss = ixy_r * loss_ixy
+                        if self.div_reg:
+                            # appplies to DGL
+                            div_loss = div_loss_calc(group_logits, target, self.div_temp, self.device)
+                            loss += self.div_weight * div_loss
+
+                    if self.training:
+                        loss.backward()
+                    x = x.detach()
+                    local_module_i += 1
+
+                    # # Test of splits
+                    # print()
+                    # print(stage_i, layer_i)
+                    # for a in range(list(self.conv1.parameters())[0].shape[0]):
+                    #     print(a, torch.sum(abs(list(self.conv1.parameters())[0].grad[a])))
+
+            for s in range(1, curr_stage):
+                for l in range(curr_layer):
+                    # get output of previous layers
+                    x = eval('self.layer' + str(s))[l](x)
+
+
+            # todo: wtf does this mean
+            if local_module_i <= self.local_module_num - 2:
+                if self.infopro_config[local_module_i][0] == curr_stage \
+                        and self.infopro_config[local_module_i][1] == curr_layer:
+                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+
+                    loss_ixx = 0
+                    loss_ixy = 0
+                    if self.infopro:
+                        assert self.groups==1, "Infopro is not supported with groups more than 1."
+                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio if self.lambdas else 1
+                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio if self.lambdas else 1
+                        for group_i in range(self.groups):
+
+                            # Flop counter code
+                            if count_flops:
+                                macs, _ = get_model_complexity_info(eval('self.decoder_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i)),
+                                                                    (x.shape[1], x.shape[2], x.shape[3]),
+                                                                    as_strings=False, print_per_layer_stat=False,
+                                                                    verbose=False)
+                                flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+
+                                macs, _ = get_model_complexity_info(eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i)),
+                                                                    (x.shape[1], x.shape[2], x.shape[3]),
+                                                                    as_strings=False, print_per_layer_stat=False,
+                                                                    verbose=False)
+                                flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+
+                            #######
+
+                            loss_ixx += eval('self.decoder_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i))(x, self._image_restore(img), for_flop_count=False)
+                            loss_temp, _ = eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i))(x, target)
+                            loss_ixy += loss_temp
+                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                    else:
+
+                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio if self.lambdas else 1
+                        aux_in_channels = int(self.wide_list[curr_stage] / self.groups)
+
+                        group_logits = []
+                        for group_i in range(self.groups):
+                            ch_from = aux_in_channels * group_i
+                            ch_to = aux_in_channels * (group_i + 1)
+                            if self.detach:
+                                if self.groups == 1 or self.detach_ratio == 1.0:
+                                    x_detached = x.clone().detach()
+                                    x_detached[:, ch_from:ch_to, :, :] = x[:, ch_from:ch_to, :, :].clone()
+
+                                    # Flop counter code
+                                    if count_flops:
+                                        macs, _ = get_model_complexity_info(eval(
+                                            'self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i)),
+                                            (x_detached.shape[1], x_detached.shape[2], x_detached.shape[3]),
+                                            as_strings=False, print_per_layer_stat=False,
+                                            verbose=False)
+                                        flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                    ##########
+                                    # this is where loss for DGL aux classifier is calculated
+                                    loss_temp, logits = eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i))(x_detached, target)
+                                    loss_ixy += loss_temp
+                                    group_logits.append(logits)
+                                else:
+                                    x_detached = []
+                                    current_ch_from = 0
+                                    for i in range(self.groups):
+                                        if i == group_i:
+                                            x_detached.append(x[:, ch_from:ch_to, :, :].clone())
+                                        else:
+                                            ch_from = aux_in_channels * i
+                                            ch_to = aux_in_channels * (i + 1)
+                                            x_detached_sliced = x[:, ch_from:ch_to, :, :].clone().detach()
+                                            current_ch_from = current_ch_from % (ch_to - ch_from)
+                                            no_channels = int(self.detach_ratio * (ch_to - ch_from))
+                                            x_detached.append(x_detached_sliced[:,
+                                                                current_ch_from:current_ch_from + no_channels, :,
+                                                                :])
+                                            current_ch_from = current_ch_from + no_channels
+                                    x_detached = torch.cat(x_detached, dim=1)
+                                    # Flop counter code
+                                    if count_flops:
+                                        macs, _ = get_model_complexity_info(eval(
+                                            'self.aux_classifier_' + str(curr_stage) + '_' + str(
+                                                curr_layer) + '_' + str(
+                                                group_i)),
+                                            (x_detached.shape[1], x_detached.shape[2], x_detached.shape[3]),
+                                            as_strings=False, print_per_layer_stat=False,
+                                            verbose=False)
+                                        flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                    #########
+
+                                    loss_temp, logits = eval(
+                                        'self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(
+                                            group_i))(x_detached, target)
+                                    loss_ixy += loss_temp
+                                    group_logits.append(logits)
+                            else:
+                                # Flop counter code
+                                if count_flops:
+                                    macs, _ = get_model_complexity_info(eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i)),
+                                        (x[:, ch_from:ch_to, :, :].shape[1], x[:, ch_from:ch_to, :, :].shape[2], x[:, ch_from:ch_to, :, :].shape[3]),
+                                        as_strings=False, print_per_layer_stat=False, verbose=False)
+                                    flop_counter[str(local_module_i) + '_' + str(group_i)] += macs
+                                #########
+
+
+                                loss_temp, logits = eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i))(x[:, ch_from:ch_to, :, :], target)
+                                loss_ixy += loss_temp
+                                group_logits.append(logits)
+
+                        all_logits[str(local_module_i)] = group_logits
+                        loss = ixy_r * loss_ixy
+                        if self.div_reg:
+                            div_loss = div_loss_calc(group_logits, target, self.div_temp, self.device)
+                            loss += self.div_weight * div_loss
+                    if self.training:
+                        loss.backward()
+                    x = x.detach()
+                    local_module_i += 1
+
+                    # # Test of splits
+                    # if layer_i >= 0:
+                    #     print()
+                    #     print(stage_i, layer_i)
+                    #     for a in range(list(eval('self.layer' + str(stage_i))[layer_i].parameters())[0].shape[0]):
+                    #         print(a, torch.sum(abs(list(eval('self.layer' + str(stage_i))[layer_i].parameters())[0].grad[a])))
+
+
+            # Flop counter code
+            # if count_flops:
+            #     macs, _ = get_model_complexity_info(Model_1(self.avgpool, self.fc, self.criterion_ce),
+            #                                         (x.shape[1], x.shape[2], x.shape[3]),
+            #                                         as_strings=False, print_per_layer_stat=False,
+            #                                         verbose=False)
+            #     flop_counter["last_head"] += macs
+            #########
+            #
+            # x = self.avgpool(x)
+            # x = x.view(x.size(0), -1)
+            # logits = self.fc(x)
+
+            #### Flop counter code
+
+            if count_flops:
+                macs, _ = get_model_complexity_info(self.head,
+                                                    (x.shape[1], x.shape[2], x.shape[3]),
+                                                    as_strings=False, print_per_layer_stat=False,
+                                                    verbose=False)
+                flop_counter['last_head'] += macs
+
+            ########
+
+            logits = self.head(x)
+            all_logits[str(local_module_i)] = [logits]
+            loss = self.criterion_ce(logits, target)
+            if self.training:
+                loss.backward()
+
+            # Flop counter code
+            if count_flops:
+                print("Training time stats: ")
+                print_flops(flop_counter)
+            #########
+            # print(str_x)
+            if eval_ensemble:
+                logits = get_ensemble_logits(all_logits, self.device, ensemble_type)
+            return logits, loss
+
+        else:
+
+            if count_flops:
+                m2 = Model_2(self.conv1, self.bn1, self.relu, self.layer1, self.layer2, self.layer3, self.head, self.criterion_ce)
+
+                inference_flops, _ = get_model_complexity_info(m2, (img.shape[1], img.shape[2], img.shape[3]),
+                                                as_strings=False, print_per_layer_stat=False,
+                                                verbose=False)
+                print("Inference time flops: ", inference_flops)
+
+            x = self.conv1(img)
+            x = self.bn1(x)
+            x = self.relu(x)
+
+            x = self.layer1(x)
+            x = self.layer2(x)
+            x = self.layer3(x)
+
+            # x = self.avgpool(x)
+            # x = x.view(x.size(0), -1)
+            # logits = self.fc(x)
+
+            logits = self.head(x)
+            loss = self.criterion_ce(logits, target)
+
+            return logits, loss
+
 
 def resnet20(**kwargs):
     model = InfoProResNet(BasicBlock, [3, 3, 3], arch='resnet20', **kwargs)
