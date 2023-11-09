@@ -314,7 +314,6 @@ class InfoProResNet(nn.Module):
             x = self.conv1(img)
             x = self.bn1(x)
             x = self.relu(x)
-            print(self.local_module_num - 2)
             if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
