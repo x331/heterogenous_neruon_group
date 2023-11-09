@@ -129,6 +129,7 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
+            print(module_index, layer_index)
 
             exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
                  '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
