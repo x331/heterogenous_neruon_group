@@ -215,6 +215,8 @@ def main():
              aux_net_feature_dim=args.aux_net_feature_dim)
     else:
         raise NotImplementedError
+    
+    print(model.parameters())
 
     if not os.path.isdir(check_point):
         mkdir_p(check_point)
