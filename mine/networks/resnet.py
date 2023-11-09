@@ -491,6 +491,7 @@ class InfoProResNet(nn.Module):
                                         verbose=False)
                             str_x += "\n" + str(stage_i) + "," + str(layer_i) + ", " + str((macs/self.groups))
                             for group_i in range(self.groups):
+                                print(str(local_module_i) + '_' + str(group_i))
                                 flop_counter[str(local_module_i) + '_' + str(group_i)] += macs / self.groups
                     #########
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
