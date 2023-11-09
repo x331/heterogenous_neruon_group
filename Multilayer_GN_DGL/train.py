@@ -372,25 +372,29 @@ def main():
     if not args.no_log:
         wandb.watch(model)
 
-    for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
-        adjust_learning_rate(optimizer, epoch + 1)
-        # train for one epoch
-        train_loss, train_prec1 = train(train_loader, model, optimizer, epoch)
+    # TODO: this is where I will make it train block-wise
+    
+    for curr_stage in range(1, 4):
+        for curr_layer in range(model.layers[curr_stage]):
+            for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
+                adjust_learning_rate(optimizer, epoch + 1)
+                # train for one epoch
+                train_loss, train_prec1 = train(train_loader, model, optimizer, epoch, curr_stage=curr_stage, curr_layer=curr_layer)
 
-        if not args.no_log:
-            wandb.log({"Train Loss": train_loss}, step=epoch)
-            wandb.log({"Prec@1": train_prec1}, step=epoch)
+                if not args.no_log:
+                    wandb.log({"Train Loss": train_loss}, step=epoch)
+                    wandb.log({"Prec@1": train_prec1}, step=epoch)
 
-        # evaluate on validation set
-        val_loss, val_prec1 = validate(val_loader, model, epoch, args.eval_ensemble, args.ensemble_type)
+                # evaluate on validation set
+                val_loss, val_prec1 = validate(val_loader, model, epoch, args.eval_ensemble, args.ensemble_type)
 
-        if not args.no_log:
-            wandb.log({"Val Loss": val_loss}, step=epoch)
-            wandb.log({"Val Prec@1": val_prec1}, step=epoch)
+                if not args.no_log:
+                    wandb.log({"Val Loss": val_loss}, step=epoch)
+                    wandb.log({"Val Prec@1": val_prec1}, step=epoch)
 
-        # remember best prec@1 and save checkpoint
-        is_best = val_prec1 > best_prec1
-        best_prec1 = max(val_prec1, best_prec1)
+                # remember best prec@1 and save checkpoint
+                is_best = val_prec1 > best_prec1
+                best_prec1 = max(val_prec1, best_prec1)
 
         # save_checkpoint({
         #     'epoch': epoch + 1,
@@ -403,7 +407,7 @@ def main():
         # print('Best accuracy: ', best_prec1)
         # np.savetxt(accuracy_file, np.array(val_acc))
 
-def train(train_loader, model, optimizer, epoch):
+def train(train_loader, model, optimizer, epoch, curr_layer=None, curr_stage=None):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -427,7 +431,9 @@ def train(train_loader, model, optimizer, epoch):
                              ixx_1=args.ixx_1,
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
-                             ixy_2=args.ixy_2)
+                             ixy_2=args.ixy_2,
+                             curr_layer=curr_layer,
+                             curr_stage=curr_stage)
 
         optimizer.step()
         # measure accuracy and record loss
