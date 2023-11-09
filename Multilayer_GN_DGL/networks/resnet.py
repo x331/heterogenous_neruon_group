@@ -695,7 +695,7 @@ class InfoProResNet(nn.Module):
 
 class SamNet(InfoProResNet):
     def __init__(self, block, layers, arch, **kwargs):
-        super(SamNet, self).__init__(block, layers, arch, kwargs)
+        super(SamNet, self).__init__(block, layers, arch, **kwargs)
 
     def forward(self, img, target=None,
                 ixx_1=0, ixy_1=0,
