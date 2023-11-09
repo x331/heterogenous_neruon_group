@@ -163,6 +163,7 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
+            print(item, module_index, layer_index)
             for group_index in range(self.groups):
                 if self.detach:
                     if self.groups==1 or self.detach_ratio == 1.0:
