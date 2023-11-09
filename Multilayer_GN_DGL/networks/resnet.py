@@ -837,6 +837,7 @@ class SamNet(InfoProResNet):
                                 loss_ixy += loss_temp
                                 group_logits.append(logits)
 
+                        print("--- End of pass through preprocessing layer ---")
                         all_logits[str(local_module_i)] = group_logits
                         loss = ixy_r * loss_ixy
                         if self.div_reg:
@@ -921,6 +922,7 @@ class SamNet(InfoProResNet):
                                     # this is where loss for DGL aux classifier is calculated
                                     loss_temp, logits = eval('self.aux_classifier_' + str(curr_stage) + '_' + str(curr_layer) + '_' + str(group_i))(x_detached, target)
                                     loss_ixy += loss_temp
+                                    print("--- end of pass through layer and aux classifier ---")
                                     group_logits.append(logits)
                                 else:
                                     x_detached = []
@@ -970,6 +972,7 @@ class SamNet(InfoProResNet):
                                 loss_ixy += loss_temp
                                 group_logits.append(logits)
 
+                        print("--- assign logits to all logits dict ---")
                         all_logits[str(local_module_i)] = group_logits
                         loss = ixy_r * loss_ixy
                         if self.div_reg:
