@@ -133,6 +133,11 @@ parser.add_argument('--ixy_2', default=1.0, type=float,)   # \lambda_2 for (K-1)
 parser.add_argument('--path', default='../masters_data', type=str, help='path')
 parser.add_argument('--data-path ', default='../../data', type=str, help='data_path')
 
+#I added
+parser.add_argument('--dataloader_workers', default=2, type=int,
+                    help='number of works dataloader should have '
+                         '(default: 2)')
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
@@ -269,7 +274,7 @@ def main():
         normalize
         ])
 
-    kwargs = {'num_workers': 12, 'pin_memory': False}
+    kwargs = {'num_workers': args.dataloader_workers, 'pin_memory': False}
     if args.dataset == "imagenet32":
         train_loader = torch.utils.data.DataLoader(Imagenet32(
             root=args.path+"/imagenet32/out_data_train", transform=transform_train, **kwargs_dataset_train),
