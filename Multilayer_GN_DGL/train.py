@@ -138,7 +138,7 @@ args = parser.parse_args()
 # Configurations adopted for training deep networks.
 training_configurations = {
     'resnet': {
-        'epochs': 160,
+        'epochs': 10,
         'batch_size': 1024, #if args.dataset in ['cifar10', 'svhn'] else 128,
         'initial_learning_rate': 0.8, #if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
