@@ -216,7 +216,7 @@ def main():
     else:
         raise NotImplementedError
     
-    print(model.parameters())
+    print(model.modules())
 
     if not os.path.isdir(check_point):
         mkdir_p(check_point)
