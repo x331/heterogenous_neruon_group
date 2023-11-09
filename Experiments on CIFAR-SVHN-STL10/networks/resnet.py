@@ -180,7 +180,6 @@ class InfoProResNet(nn.Module):
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
 
-        print(layers)
         return nn.Sequential(*layers)
 
     def forward_original(self, img):
