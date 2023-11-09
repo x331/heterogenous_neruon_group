@@ -647,7 +647,7 @@ class InfoProResNet(nn.Module):
             ########
 
             logits = self.head(x)
-            print(logits.shape())
+            print(logits.shape)
             all_logits[str(local_module_i)] = [logits]
             loss = self.criterion_ce(logits, target)
             if self.training:
