@@ -133,12 +133,20 @@ parser.add_argument('--ixy_2', default=1.0, type=float,)   # \lambda_2 for (K-1)
 parser.add_argument('--path', default='../../data', type=str, help='path')
 parser.add_argument('--data-path ', default='../../data', type=str, help='data_path')
 
+#I added
+parser.add_argument('--dataloader_workers', default=2, type=int,
+                    help='number of works dataloader should have '
+                         '(default: 2)')
+parser.add_argument('--train_total_epochs', default=10, type=int,
+                    help='number of epochs to train for'
+                         '(default: 10)')
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
 training_configurations = {
     'resnet': {
-        'epochs': 160,
+        'epochs': args.train_total_epochs,
         'batch_size': 1024, #if args.dataset in ['cifar10', 'svhn'] else 128,
         'initial_learning_rate': 0.8, #if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
@@ -266,7 +274,7 @@ def main():
         normalize
         ])
 
-    kwargs = {'num_workers': 12, 'pin_memory': False}
+    kwargs = {'num_workers': args.dataloader_workers, 'pin_memory': False}
     if args.dataset == "imagenet32":
         train_loader = torch.utils.data.DataLoader(Imagenet32(
             root=args.path+"/imagenet32/out_data_train", transform=transform_train, **kwargs_dataset_train),
