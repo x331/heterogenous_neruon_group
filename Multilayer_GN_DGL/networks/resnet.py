@@ -1028,6 +1028,7 @@ class SamNet(InfoProResNet):
                 logits = get_ensemble_logits(all_logits, self.device, ensemble_type)
             else:
                 # changed this to get the logits of the layer's aux classifier
+                print(all_logits)
                 logits = all_logits["1"][0]
             return logits, loss
 
