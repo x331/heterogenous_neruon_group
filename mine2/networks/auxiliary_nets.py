@@ -254,4 +254,4 @@ class AuxClassifier(nn.Module):
         
         print(features.shape,features)
 
-        return loss
+        return loss,features
