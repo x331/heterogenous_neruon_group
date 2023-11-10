@@ -259,7 +259,7 @@ class InfoProResNet(nn.Module):
             logits = self.fc(x)
             pred_per_exit.append(logits)
             fc_loss = self.criterion_ce(logits, target)
-            if not joint_train:
+            if not self.joint_train:
                 loss = fc_loss
                 loss.backward()
                 return [logits], [loss]
