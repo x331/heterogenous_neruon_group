@@ -210,7 +210,7 @@ class InfoProResNet(nn.Module):
             x = self.bn1(x)
             x = self.relu(x)
 
-            if local_module_i <= self.local_module_num - 2 and not joint_train:
+            if local_module_i <= self.local_module_num - 2 and not self.joint_train:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
                     ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
