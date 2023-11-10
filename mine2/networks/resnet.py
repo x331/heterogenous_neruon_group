@@ -97,7 +97,7 @@ class InfoProResNet(nn.Module):
                  balanced_memory=False, dataset='cifar10', class_num=10,
                  wide_list=(16, 16, 32, 64), dropout_rate=0,
                  aux_net_config='1c2f', local_loss_mode='contrast',
-                 aux_net_widen=1, aux_net_feature_dim=128):
+                 aux_net_widen=1, aux_net_feature_dim=128,joint_train=False):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -208,7 +208,21 @@ class InfoProResNet(nn.Module):
             x = self.bn1(x)
             x = self.relu(x)
 
-            if local_module_i <= self.local_module_num - 2:
+            if local_module_i <= self.local_module_num - 2 and not joint_train:
+                if self.infopro_config[local_module_i][0] == stage_i \
+                        and self.infopro_config[local_module_i][1] == layer_i:
+                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                    ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                    ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                    loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                    loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                    loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                    loss.backward()
+                    x = x.detach()
+                    local_module_i += 1
+                    
+            if joint_train:
+                print(self.infopro_config)
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
                     ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0

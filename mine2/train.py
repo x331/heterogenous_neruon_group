@@ -96,6 +96,10 @@ parser.add_argument('--ixy_2', default=0.0, type=float,)   # \lambda_2 for (K-1)
 parser.add_argument('--train_total_epochs', default=160, type=int,
                     help='number of epochs to train for'
                          '(default: 10)')
+parser.add_argument('--joint_train', dest='joint_train' ,action='store_true',
+                    help='True if training early exit network in joint manner')
+parser.add_argument('--laywise_train', dest='joint_train', action='store_true',
+                    help='True if training early exit network in layerwise manner')
 
 args = parser.parse_args()
 
@@ -221,7 +225,8 @@ def main():
              aux_net_config=args.aux_net_config,
              local_loss_mode=args.local_loss_mode,
              aux_net_widen=args.aux_net_widen,
-             aux_net_feature_dim=args.aux_net_feature_dim)
+             aux_net_feature_dim=args.aux_net_feature_dim, 
+             joint_train = args.joint_train)
     else:
         raise NotImplementedError
     
