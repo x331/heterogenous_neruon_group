@@ -239,7 +239,7 @@ class InfoProResNet(nn.Module):
                 for layer_i in range(self.layers[stage_i - 1]):
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
 
-                    if local_module_i <= self.local_module_num - 2:
+                    if local_module_i <= self.local_module_num - 2 and not self.joint_train:
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
                             ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
@@ -252,13 +252,14 @@ class InfoProResNet(nn.Module):
                             x = x.detach()
                             local_module_i += 1
                             
-                    if self.joint_train:
-                        print('hi')
+                    if local_module_i <= self.local_module_num - 2:
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
+                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                             loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                             loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            print(loss_ixx,loss_ixx,target)
                             loss = ixx_r * loss_ixx + ixy_r * loss_ixy
                             loss.backward()
                             x = x.detach()
