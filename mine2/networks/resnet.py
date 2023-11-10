@@ -225,7 +225,7 @@ class InfoProResNet(nn.Module):
                         x = x.detach()
                     else:
                         loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                        loss_per_exit.appendloss_ixy
+                        loss_per_exit.append(loss_ixy)
 
                     local_module_i += 1                    
 
@@ -247,7 +247,7 @@ class InfoProResNet(nn.Module):
                                 x = x.detach()
                             else:
                                 loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                loss_per_exit.appendloss_ixy
+                                loss_per_exit.append(loss_ixy)
 
                             local_module_i += 1
                             
