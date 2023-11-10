@@ -314,6 +314,13 @@ def train(train_loader, model, optimizer, epoch):
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2)
+        print(len(output),len(loss))
+        print(output,loss)
+        if args.joint_train:
+            loss = torch.mean(torch.vstack(loss),axis=1)
+            print(loss)
+            loss.backward()
+        
         optimizer.step()
 
         # measure accuracy and record loss
