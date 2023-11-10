@@ -109,6 +109,7 @@ class InfoProResNet(nn.Module):
         self.class_num = class_num
         self.local_module_num = local_module_num
         self.layers = layers
+        self.joint_train = joint_train
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)
@@ -118,6 +119,7 @@ class InfoProResNet(nn.Module):
         self.layer3 = self._make_layer(block, wide_list[3], layers[2], stride=2)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(self.feature_num, self.class_num)
+        
 
         self.criterion_ce = nn.CrossEntropyLoss()
 
@@ -220,7 +222,7 @@ class InfoProResNet(nn.Module):
                     loss.backward()
                     x = x.detach()
                     local_module_i += 1
-                    
+            print(self.joint_train)        
             if self.joint_train:
                 print(self.infopro_config)
                 if self.infopro_config[local_module_i][0] == stage_i \
