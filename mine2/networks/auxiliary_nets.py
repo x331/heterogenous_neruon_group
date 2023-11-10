@@ -252,6 +252,5 @@ class AuxClassifier(nn.Module):
         else:
             raise NotImplementedError
         
-        print(features.shape,features)
 
         return loss,features
