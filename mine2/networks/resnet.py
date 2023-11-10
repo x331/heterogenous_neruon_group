@@ -131,16 +131,15 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            print(module_index, layer_index)
-
             exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
-                 '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
+                '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
 
             exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
-                 '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                 'loss_mode=local_loss_mode, class_num=class_num, '
-                 'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+                '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                'loss_mode=local_loss_mode, class_num=class_num, '
+                'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
 
+        
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
@@ -205,66 +204,55 @@ class InfoProResNet(nn.Module):
             stage_i = 0
             layer_i = 0
             local_module_i = 0
+            if self.joint_train:
+                loss_per_exit = []
 
             x = self.conv1(img)
             x = self.bn1(x)
             x = self.relu(x)
 
-            if local_module_i <= self.local_module_num - 2 and not self.joint_train:
+            if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
-                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                    ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                    ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                    loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                    loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                    loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                    loss.backward()
-                    x = x.detach()
-                    local_module_i += 1
-                    
-            if self.joint_train:
-                print('hi')
-                if self.infopro_config[local_module_i][0] == stage_i \
-                        and self.infopro_config[local_module_i][1] == layer_i:
-                    loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                    loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                    print(loss_ixx,loss_ixx,target)
-                    loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                    loss.backward()
-                    x = x.detach()
-                    local_module_i += 1
+                    if not self.joint_train:
+                        ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                        loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                        loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                        loss.backward()
+                        x = x.detach()
+                    else:
+                        loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                        loss_per_exit.appendloss_ixy
+
+                    local_module_i += 1                    
 
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
 
-                    if local_module_i <= self.local_module_num - 2 and not self.joint_train:
-                        if self.infopro_config[local_module_i][0] == stage_i \
-                                and self.infopro_config[local_module_i][1] == layer_i:
-                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                            loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                            loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                            loss.backward()
-                            x = x.detach()
-                            local_module_i += 1
-                            
                     if local_module_i <= self.local_module_num - 2:
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
-                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                            loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                            loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            print(loss_ixx,loss_ixx,target)
-                            loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                            loss.backward()
-                            x = x.detach()
+                            if not self.joint_train:
+                                ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                                loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                loss.backward()
+                                x = x.detach()
+                            else:
+                                loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                loss_per_exit.appendloss_ixy
+
                             local_module_i += 1
+                            
+                            
+
 
             x = self.avgpool(x)
             x = x.view(x.size(0), -1)

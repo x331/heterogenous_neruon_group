@@ -251,5 +251,7 @@ class AuxClassifier(nn.Module):
             loss = self.criterion(features, target)
         else:
             raise NotImplementedError
+        
+        print(features.shape,features)
 
         return loss
