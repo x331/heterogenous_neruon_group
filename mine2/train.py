@@ -317,7 +317,7 @@ def train(train_loader, model, optimizer, epoch):
         print(len(output),len(loss))
         print(output,loss)
         if args.joint_train:
-            loss = torch.mean(torch.vstack(loss),axis=1)
+            loss = torch.mean(torch.vstack(loss))
             print(loss)
             loss.backward()
         
