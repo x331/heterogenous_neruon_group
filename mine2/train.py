@@ -224,7 +224,7 @@ def main():
     else:
         raise NotImplementedError
     
-    print('module',[module for module in model.modules()])
+    print('module',len([module for module in model.modules()]),len([module for module in model.modules() if not isinstance(module,sequential)]), [module for module in model.modules() if not isinstance(module,sequential)])
 
     if not os.path.isdir(check_point):
         mkdir_p(check_point)
