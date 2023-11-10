@@ -104,8 +104,6 @@ parser.add_argument('--locally_train', dest='locally_train', action='store_true'
                     help='True if training early exit network in local manner')
 parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='store_true',
                     help='True to give just the prediction at the end of the network no early exits')
-no_early_exit_pred
-
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
