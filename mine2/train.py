@@ -88,12 +88,20 @@ parser.add_argument('--ixy_1', default=0.0, type=float,)   # \lambda_2 for 1st l
 parser.add_argument('--ixx_2', default=0.0, type=float,)   # \lambda_1 for (K-1)th local module
 parser.add_argument('--ixy_2', default=0.0, type=float,)   # \lambda_2 for (K-1)th local module
 
+#I added
+# parser.add_argument('--dataloader_workers', default=12, type=int,
+#                     help='number of works dataloader should have '
+#                          '(default: 12)')
+parser.add_argument('--train_total_epochs', default=160, type=int,
+                    help='number of epochs to train for'
+                         '(default: 10)')
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
 training_configurations = {
     'resnet': {
-        'epochs': 160,
+        'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
@@ -216,7 +224,7 @@ def main():
     else:
         raise NotImplementedError
     
-    print('module',[module for module in model.modules() if not isinstance(module, torch.nn.Sequential)])
+    print('module',[module for module in model.modules()])
 
     if not os.path.isdir(check_point):
         mkdir_p(check_point)
