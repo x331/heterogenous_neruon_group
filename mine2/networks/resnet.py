@@ -221,7 +221,7 @@ class InfoProResNet(nn.Module):
                     x = x.detach()
                     local_module_i += 1
                     
-            if joint_train:
+            if self.joint_train:
                 print(self.infopro_config)
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
