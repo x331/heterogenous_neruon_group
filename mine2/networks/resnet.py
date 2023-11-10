@@ -97,7 +97,8 @@ class InfoProResNet(nn.Module):
                  balanced_memory=False, dataset='cifar10', class_num=10,
                  wide_list=(16, 16, 32, 64), dropout_rate=0,
                  aux_net_config='1c2f', local_loss_mode='contrast',
-                 aux_net_widen=1, aux_net_feature_dim=128,joint_train=False):
+                 aux_net_widen=1, aux_net_feature_dim=128,
+                 joint_train=False,layerwise_train=False, locally_train=False):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -198,14 +199,15 @@ class InfoProResNet(nn.Module):
 
     def forward(self, img, target=None,
                 ixx_1=0, ixy_1=0,
-                ixx_2=0, ixy_2=0):
+                ixx_2=0, ixy_2=0,
+                no_early_exit_pred = False):
 
-        if self.training:
+        if self.training or not no_early_exit_pred:
             stage_i = 0
             layer_i = 0
             local_module_i = 0
-            if self.joint_train:
-                loss_per_exit = []
+            loss_per_exit = []
+            pred_per_exit = []
 
             x = self.conv1(img)
             x = self.bn1(x)
@@ -219,14 +221,14 @@ class InfoProResNet(nn.Module):
                         ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                         ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                         loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                        loss_ixy = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                        loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss = ixx_r * loss_ixx + ixy_r * loss_ixy
                         loss.backward()
                         x = x.detach()
                     else:
                         loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
-
+                    pred_per_exit.append(preds)
                     local_module_i += 1                    
 
             for stage_i in (1, 2, 3):
@@ -248,18 +250,22 @@ class InfoProResNet(nn.Module):
                             else:
                                 loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
-
+                            pred_per_exit.append(preds)
                             local_module_i += 1
                             
-                            
-
 
             x = self.avgpool(x)
             x = x.view(x.size(0), -1)
             logits = self.fc(x)
-            loss = self.criterion_ce(logits, target)
-            loss.backward()
-            return logits, loss
+            pred_per_exit.append(logits)
+            fc_loss = self.criterion_ce(logits, target)
+            if not joint_train:
+                loss = fc_loss
+                loss.backward()
+                return [logits], [loss]
+            else:
+                loss_per_exit.append(fc_loss)
+                return pred_per_exit, loss_per_exit
 
         else:
             x = self.conv1(img)
@@ -274,7 +280,7 @@ class InfoProResNet(nn.Module):
             x = x.view(x.size(0), -1)
             logits = self.fc(x)
             loss = self.criterion_ce(logits, target)
-            return logits, loss
+            return [logits], [loss]
 
 
 def resnet20(**kwargs):

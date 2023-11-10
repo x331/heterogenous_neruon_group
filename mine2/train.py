@@ -98,8 +98,13 @@ parser.add_argument('--train_total_epochs', default=160, type=int,
                          '(default: 10)')
 parser.add_argument('--joint_train', dest='joint_train' ,action='store_true',
                     help='True if training early exit network in joint manner')
-parser.add_argument('--laywise_train', dest='joint_train', action='store_true',
+parser.add_argument('--laywise_train', dest='laywise_train', action='store_true',
                     help='True if training early exit network in layerwise manner')
+parser.add_argument('--locally_train', dest='locally_train', action='store_true',
+                    help='True if training early exit network in local manner')
+parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='store_true',
+                    help='True to give just the prediction at the end of the network no early exits')
+no_early_exit_pred
 
 args = parser.parse_args()
 
@@ -226,7 +231,10 @@ def main():
              local_loss_mode=args.local_loss_mode,
              aux_net_widen=args.aux_net_widen,
              aux_net_feature_dim=args.aux_net_feature_dim, 
-             joint_train = args.joint_train)
+             joint_train = args.joint_train,
+             layerwise_train = args.layerwise_train,
+             locally_train = args.locally_train,
+             no_early_exit_pred = args.no_early_exit_pred)
     else:
         raise NotImplementedError
     
@@ -355,7 +363,8 @@ def validate(val_loader, model, epoch):
 
         with torch.no_grad():
             output, loss = model(img=input_var,
-                                 target=target_var,)
+                                 target=target_var,
+                                 no_early_exit_pred = args.no_early_exit_pred)
 
         # measure accuracy and record loss
         prec1 = accuracy(output.data, target, topk=(1,))[0]
