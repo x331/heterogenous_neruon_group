@@ -231,8 +231,7 @@ def main():
              aux_net_feature_dim=args.aux_net_feature_dim, 
              joint_train = args.joint_train,
              layerwise_train = args.layerwise_train,
-             locally_train = args.locally_train,
-             no_early_exit_pred = args.no_early_exit_pred)
+             locally_train = args.locally_train)
     else:
         raise NotImplementedError
     
