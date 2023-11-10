@@ -18,7 +18,7 @@ import torchvision.transforms as transforms
 
 import networks.resnet
 
-import early_exit_joint_loss from utils
+import .early_exit_joint_loss from utils
 
 parser = argparse.ArgumentParser(description='InfoPro-PyTorch')
 parser.add_argument('--dataset', default='cifar10', type=str,
