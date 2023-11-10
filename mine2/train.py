@@ -98,7 +98,7 @@ parser.add_argument('--train_total_epochs', default=160, type=int,
                          '(default: 10)')
 parser.add_argument('--joint_train', dest='joint_train' ,action='store_true',
                     help='True if training early exit network in joint manner')
-parser.add_argument('--laywise_train', dest='laywise_train', action='store_true',
+parser.add_argument('--layerwise_train', dest='layerwise_train', action='store_true',
                     help='True if training early exit network in layerwise manner')
 parser.add_argument('--locally_train', dest='locally_train', action='store_true',
                     help='True if training early exit network in local manner')
