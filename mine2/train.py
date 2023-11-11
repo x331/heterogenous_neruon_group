@@ -343,7 +343,7 @@ def train(train_loader, model, optimizer, epoch):
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
         else:
-            prec1 = accuracy_all_exits(output, target, topk=(1,5))[0]
+            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             for idx, meter in enumerate(top1):
                 meter.update(prec1[0].item(), x.size(0))
@@ -393,6 +393,9 @@ def validate(val_loader, model, epoch):
             output, loss = model(img=input_var,
                                  target=target_var,
                                  no_early_exit_pred = args.no_early_exit_pred)
+            
+        if args.joint_train:
+            loss = early_exit_joint_loss(loss)
 
         # measure accuracy and record loss
         if model.module.local_module_num == 1:
