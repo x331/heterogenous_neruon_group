@@ -394,7 +394,7 @@ def validate(val_loader, model, epoch):
         # measure accuracy and record loss
         if model.module.local_module_num == 1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
-            losses.update(loss.data.item(), input.size(0))
+            losses.update(loss[0].data.item(), input.size(0))
             top1.update(prec1.item(), input.size(0))
         else:
             prec1 = accuracy(output.data, target, topk=(1,))[0]
