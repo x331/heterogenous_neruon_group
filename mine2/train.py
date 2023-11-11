@@ -327,15 +327,15 @@ def train(train_loader, model, optimizer, epoch):
         optimizer.step()
 
         # measure accuracy and record loss
-        if args.local_module_num >1:
-            prec1 = accuracy(output.data, target, topk=(1,))[0]
+        if args.local_module_num ==1:
+            print(loss)
+            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
             
         else:
-            print(loss,)
-            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
-            losses.update(loss[0].data.item(), x.size(0))
+            prec1 = accuracy(output.data, target, topk=(1,))[0]
+            losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
 
         batch_time.update(time.time() - end)
