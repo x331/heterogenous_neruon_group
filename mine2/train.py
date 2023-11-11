@@ -320,7 +320,7 @@ def train(train_loader, model, optimizer, epoch):
                              ixy_2=args.ixy_2)
         print(len(output),len(loss))
         if args.joint_train:
-            early_exit_joint_loss(loss)
+            loss = early_exit_joint_loss(loss)
             loss.backward()
         
         optimizer.step()
