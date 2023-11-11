@@ -508,16 +508,12 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    
-    print(correct.shape)
-    print(correct)
 
     res = []
     for k in topk:
         # correct_k = correct[:k].view(-1).float().sum(0)
         correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
-    print(res)
     return res
 
 if __name__ == '__main__':
