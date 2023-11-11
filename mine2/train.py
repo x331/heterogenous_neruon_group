@@ -341,13 +341,14 @@ def train(train_loader, model, optimizer, epoch):
         if args.local_module_num ==1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
-            for idx, meter in enumerate(top1):
-                meter.update(prec1[0].item(), x.size(0))
+            top1.update(prec1.item(), x.size(0))
+   
             
         else:
             prec1 = accuracy_all_exits(output.data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
-            top1.update(prec1.item(), x.size(0))
+            for idx, meter in enumerate(top1):
+                meter.update(prec1[0].item(), x.size(0))
 
         batch_time.update(time.time() - end)
         end = time.time()
