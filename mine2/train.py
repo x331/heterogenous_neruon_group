@@ -398,6 +398,7 @@ def validate(val_loader, model, epoch):
         # measure accuracy and record loss
         if model.module.local_module_num == 1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
+            print(loss)
             losses.update(loss[0].data.item(), input.size(0))
             for idx, meter in enumerate(top1):
                 meter.update(prec1.item(), input.size(0))                        
