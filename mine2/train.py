@@ -406,7 +406,7 @@ def validate(val_loader, model, epoch):
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), input.size(0))
             for idx, meter in enumerate(top1):
-                meter.update(prec1[0].item(), x.size(0))            
+                meter.update(prec1[0].item(), input.size(0))            
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
