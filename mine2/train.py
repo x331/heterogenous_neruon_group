@@ -317,18 +317,22 @@ def train(train_loader, model, optimizer, epoch):
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2)
         print(len(output),len(loss))
-        print(output,loss)
         if args.joint_train:
-            loss = torch.mean(torch.vstack(loss))
-            print(loss)
+            early_exit_joint_loss(loss)
             loss.backward()
         
         optimizer.step()
 
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))[0]
-        losses.update(loss.data.item(), x.size(0))
-        top1.update(prec1.item(), x.size(0))
+        if args.local_module_num >1:
+            prec1 = accuracy(output.data, target, topk=(1,))[0]
+            losses.update(loss.data.item(), x.size(0))
+            top1.update(prec1.item(), x.size(0))
+            
+        else:
+            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
+            losses.update(loss[0].data.item(), x.size(0))
+            top1.update(prec1.item(), x.size(0))
 
         batch_time.update(time.time() - end)
         end = time.time()
