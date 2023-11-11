@@ -400,7 +400,7 @@ def validate(val_loader, model, epoch):
             losses.update(loss[0].data.item(), input.size(0))
             top1.update(prec1.item(), input.size(0))
         else:
-            prec1 = accuracy(output.data, target, topk=(1,))[0]
+            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), input.size(0))
             for idx, meter in enumerate(top1):
                 meter.update(prec1[0].item(), x.size(0))            
@@ -514,6 +514,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
         # correct_k = correct[:k].view(-1).float().sum(0)
         correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(0)
         res.append(correct_k.mul_(100.0 / batch_size))
+    print(res)
     return res
 
 if __name__ == '__main__':
