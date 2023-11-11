@@ -343,7 +343,7 @@ def train(train_loader, model, optimizer, epoch):
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
         else:
-            prec1 = accuracy_all_exits(output.data, target, topk=(1,))[0]
+            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             for idx, meter in enumerate(top1):
                 meter.update(prec1[0].item(), x.size(0))
@@ -501,6 +501,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
+    print(output)
     print(torch.vstack(output).shape)
 
     _, pred = output.topk(maxk, 1, True, True)
