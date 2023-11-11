@@ -309,10 +309,7 @@ def train(train_loader, model, optimizer, epoch):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
-    if model.module.local_module_num == 1:
-        top1 = AverageMeter()
-    else:
-        top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
+    top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
 
     train_batches_num = len(train_loader)
 
@@ -341,7 +338,8 @@ def train(train_loader, model, optimizer, epoch):
         if args.local_module_num ==1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
-            top1.update(prec1.item(), x.size(0))
+            for idx, meter in enumerate(top1):
+                meter.update(prec1[0].item(), x.size(0))
         else:
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
@@ -357,7 +355,7 @@ def train(train_loader, model, optimizer, epoch):
             string = ('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
                       'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
-                      'Prec@1 {top1.value:.3f} ({top1.ave:.3f})\t'.format(
+                      'Prec@1 {top1[0].value:.3f} ({top1[0].ave:.3f})\t'.format(
                        epoch, i+1, train_batches_num, batch_time=batch_time,
                        loss=losses, top1=top1))
 
@@ -371,10 +369,7 @@ def validate(val_loader, model, epoch):
     """Perform validation on the validation set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
-    if model.module.local_module_num == 1:
-        top1 = AverageMeter()
-    else:
-        top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
+    top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
         
     train_batches_num = len(val_loader)
 
@@ -401,7 +396,8 @@ def validate(val_loader, model, epoch):
         if model.module.local_module_num == 1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss[0].data.item(), input.size(0))
-            top1.update(prec1.item(), input.size(0))
+            for idx, meter in enumerate(top1):
+                meter.update(prec1[idx].item(), input.size(0))                        
         else:
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), input.size(0))
