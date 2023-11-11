@@ -513,6 +513,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
     print(correct.shape)
+    print(correct)
 
     res = []
     for k in topk:
