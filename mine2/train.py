@@ -342,12 +342,12 @@ def train(train_loader, model, optimizer, epoch):
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             for idx, meter in enumerate(top1):
-                meter.update(prec1[0].item(), x.size(0))
+                meter.update(prec1.item(), x.size(0))
         else:
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             for idx, meter in enumerate(top1):
-                meter.update(prec1[0].item(), x.size(0))
+                meter.update(prec1[idx].item(), x.size(0))
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -400,7 +400,7 @@ def validate(val_loader, model, epoch):
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss[0].data.item(), input.size(0))
             for idx, meter in enumerate(top1):
-                meter.update(prec1[idx].item(), input.size(0))                        
+                meter.update(prec1.item(), input.size(0))                        
         else:
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), input.size(0))
