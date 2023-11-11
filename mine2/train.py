@@ -334,20 +334,17 @@ def train(train_loader, model, optimizer, epoch):
         if args.joint_train:
             loss = early_exit_joint_loss(loss)
             loss.backward()
+        else:
+            loss = loss[-1]
+            
         
         optimizer.step()
 
         # measure accuracy and record loss
-        if args.local_module_num ==1:
-            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
-            losses.update(loss.data.item(), x.size(0))
-            for idx, meter in enumerate(top1):
-                meter.update(prec1.item(), x.size(0))
-        else:
-            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
-            losses.update(loss.data.item(), x.size(0))
-            for idx, meter in enumerate(top1):
-                meter.update(prec1[idx].item(), x.size(0))
+        prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
+        losses.update(loss.data.item(), x.size(0))
+        for idx, meter in enumerate(top1):
+            meter.update(prec1[idx].item(), x.size(0))            
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -394,19 +391,15 @@ def validate(val_loader, model, epoch):
             
         if args.joint_train:
             loss = early_exit_joint_loss(loss)
+        else:
+            loss = loss[-1]
 
         # measure accuracy and record loss
-        if model.module.local_module_num == 1:
-            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
-            print(loss)
-            losses.update(loss[0].data.item(), input.size(0))
-            for idx, meter in enumerate(top1):
-                meter.update(prec1.item(), input.size(0))                        
-        else:
-            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
-            losses.update(loss.data.item(), input.size(0))
-            for idx, meter in enumerate(top1):
-                meter.update(prec1[idx].item(), input.size(0))            
+        prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
+        losses.update(loss.data.item(), input.size(0))
+        for idx, meter in enumerate(top1):
+            meter.update(prec1[idx].item(), input.size(0)) 
+                           
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
