@@ -309,7 +309,7 @@ def train(train_loader, model, optimizer, epoch):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
-    if model.local_module_num == 1:
+    if model.module.local_module_num == 1:
         top1 = AverageMeter()
     else:
         top1 = [AverageMeter() for _ in range(model.local_module_num)]
