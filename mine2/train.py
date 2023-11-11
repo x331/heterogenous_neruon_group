@@ -502,6 +502,8 @@ def accuracy_all_exits(output, target, topk=(1,)):
     maxk = max(topk)
     batch_size = target.size(0)
     print(torch.stack(output).detach().shape)
+    
+    output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 1, True, True)
     pred = pred.t()
