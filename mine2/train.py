@@ -501,15 +501,14 @@ def accuracy_all_exits(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
-    print(torch.stack(output).detach().shape)
-    
     output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 2, True, True)
-    print(pred)
     print(pred.shape)
 
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    print(target.view(1, -1).expand_as(pred).shape)
+    print(target.view(1, -1).expand_as(pred))
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
     print(correct.shape)
