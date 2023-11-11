@@ -12,6 +12,8 @@ import math
 from .configs import InfoPro, InfoPro_balanced_memory
 from .auxiliary_nets import Decoder, AuxClassifier
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def conv3x3(in_planes, out_planes, stride=1):
     " 3x3 convolution with padding "
@@ -152,17 +154,17 @@ class InfoProResNet(nn.Module):
         if 'cifar' in dataset:
             self.mask_train_mean = torch.Tensor([x / 255.0 for x in [125.3, 123.0, 113.9]]).view(1, 3, 1, 1).expand(
                 batch_size, 3, image_size, image_size
-            ).cuda()
+            ).to(device)
             self.mask_train_std = torch.Tensor([x / 255.0 for x in [63.0, 62.1, 66.7]]).view(1, 3, 1, 1).expand(
                 batch_size, 3, image_size, image_size
-            ).cuda()
+            ).to(device)
         else:
             self.mask_train_mean = torch.Tensor([x / 255.0 for x in [127.5, 127.5, 127.5]]).view(1, 3, 1, 1).expand(
                 batch_size, 3, image_size, image_size
-            ).cuda()
+            ).to(device)
             self.mask_train_std = torch.Tensor([x / 255.0 for x in [127.5, 127.5, 127.5]]).view(1, 3, 1, 1).expand(
                 batch_size, 3, image_size, image_size
-            ).cuda()
+            ).to(device)
 
     def _image_restore(self, normalized_image):
         return normalized_image.mul(self.mask_train_std[:normalized_image.size(0)]) \
