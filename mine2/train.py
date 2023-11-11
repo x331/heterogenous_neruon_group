@@ -342,8 +342,6 @@ def train(train_loader, model, optimizer, epoch):
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
-   
-            
         else:
             prec1 = accuracy_all_exits(output.data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
@@ -373,9 +371,10 @@ def validate(val_loader, model, epoch):
     """Perform validation on the validation set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
-
-    train_batches_num = len(val_loader)
+    if model.module.local_module_num == 1:
+        top1 = AverageMeter()
+    else:
+        top1 = [AverageMeter() for _ in range(model.local_module_num)]
 
     # switch to evaluate mode
     model.eval()
@@ -393,10 +392,15 @@ def validate(val_loader, model, epoch):
                                  no_early_exit_pred = args.no_early_exit_pred)
 
         # measure accuracy and record loss
-        prec1 = accuracy(output.data, target, topk=(1,))[0]
-        losses.update(loss.data.item(), input.size(0))
-        top1.update(prec1.item(), input.size(0))
-
+        if model.module.local_module_num == 1:
+            prec1 = accuracy(output[0].data, target, topk=(1,))[0]
+            losses.update(loss.data.item(), input.size(0))
+            top1.update(prec1.item(), input.size(0))
+        else:
+            prec1 = accuracy(output.data, target, topk=(1,))[0]
+            losses.update(loss.data.item(), input.size(0))
+            for idx, meter in enumerate(top1):
+                meter.update(prec1[0].item(), x.size(0))            
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
