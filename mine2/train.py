@@ -312,7 +312,7 @@ def train(train_loader, model, optimizer, epoch):
     if model.module.local_module_num == 1:
         top1 = AverageMeter()
     else:
-        top1 = [AverageMeter() for _ in range(model.local_module_num)]
+        top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
 
     train_batches_num = len(train_loader)
 
@@ -374,7 +374,7 @@ def validate(val_loader, model, epoch):
     if model.module.local_module_num == 1:
         top1 = AverageMeter()
     else:
-        top1 = [AverageMeter() for _ in range(model.local_module_num)]
+        top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
         
     train_batches_num = len(val_loader)
 
