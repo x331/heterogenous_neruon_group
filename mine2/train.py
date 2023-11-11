@@ -376,7 +376,7 @@ def validate(val_loader, model, epoch):
     else:
         top1 = [AverageMeter() for _ in range(model.local_module_num)]
         
-    train_batches_num = len(train_loader)
+    train_batches_num = len(val_loader)
 
 
     # switch to evaluate mode
