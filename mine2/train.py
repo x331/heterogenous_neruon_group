@@ -222,11 +222,11 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
                                                 **kwargs_dataset_train),
-        batch_size=training_configurations[args.model]['batch_size'], sampler=SubsetRandomSampler(100), shuffle=True, **kwargs)
+        batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(100), shuffle=True, **kwargs)
     val_loader = torch.utils.data.DataLoader(
         datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
                                                 **kwargs_dataset_test),
-        batch_size=training_configurations[args.model]['batch_size'], sampler=SubsetRandomSampler(100), shuffle=False, **kwargs)
+        batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(100), shuffle=False, **kwargs)
 
     # create model
     if args.model == 'resnet':
