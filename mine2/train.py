@@ -509,7 +509,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print(pred)
     print(pred.shape)
 
-    pred = pred.reshape(pred.shape[0],pred.shap[2],pred.shape[1])
+    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
     print(correct.shape)
