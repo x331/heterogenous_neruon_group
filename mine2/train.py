@@ -145,6 +145,8 @@ accuracy_file = record_path + '/accuracy_epoch.txt'
 loss_file = record_path + '/loss_epoch.txt'
 check_point = os.path.join(record_path, args.checkpoint)
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 
 def main():
     global best_prec1
@@ -250,7 +252,7 @@ def main():
                                 nesterov=training_configurations[args.model]['nesterov'],
                                 weight_decay=training_configurations[args.model]['weight_decay'])
 
-    model = torch.nn.DataParallel(model).cuda()
+    model = torch.nn.DataParallel(model).to(device)
 
     if args.resume:
         # Load checkpoint.
@@ -306,8 +308,8 @@ def train(train_loader, model, optimizer, epoch):
 
     end = time.time()
     for i, (x, target) in enumerate(train_loader):
-        target = target.cuda()
-        x = x.cuda()
+        target = target.to(device)
+        x = x.to(device)
 
         optimizer.zero_grad()
         output, loss = model(img=x,
@@ -366,8 +368,8 @@ def validate(val_loader, model, epoch):
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        target = target.cuda()
-        input = input.cuda()
+        target = target.device()
+        input = input.device()
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
