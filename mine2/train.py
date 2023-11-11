@@ -406,7 +406,7 @@ def validate(val_loader, model, epoch):
             prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
             losses.update(loss.data.item(), input.size(0))
             for idx, meter in enumerate(top1):
-                meter.update(prec1[0].item(), input.size(0))            
+                meter.update(prec1[idx].item(), input.size(0))            
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -415,7 +415,7 @@ def validate(val_loader, model, epoch):
     string = ('Test: [{0}][{1}/{2}]\t'
               'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
               'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
-              'Prec@1 {top1.value:.3f} ({top1.ave:.3f})\t'.format(
+              'Prec@1 {top1[0].value:.3f} ({top1[0].ave:.3f})\t'.format(
         epoch, (i + 1), train_batches_num, batch_time=batch_time,
         loss=losses, top1=top1))
     print(string)
