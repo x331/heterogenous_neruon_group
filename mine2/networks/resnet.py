@@ -134,8 +134,9 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
-                '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
+            if not self.joint_train:
+                exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
+                    '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
 
             exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
                 '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
