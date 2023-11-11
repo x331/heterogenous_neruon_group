@@ -106,6 +106,9 @@ parser.add_argument('--locally_train', dest='locally_train', action='store_true'
                     help='True if training early exit network in local manner')
 parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='store_true',
                     help='True to give just the prediction at the end of the network no early exits')
+parser.add_argument('--small_datasets', dest='small_datasets', action='store_true',
+                    help='True to use only dataloaders with a few hundred cases instead of all thousands')
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
@@ -208,25 +211,25 @@ def main():
         ])
 
     kwargs = {'num_workers': 1, 'pin_memory': False}
-
-    # train_loader = torch.utils.data.DataLoader(
-    #     datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
-    #                                             **kwargs_dataset_train),
-    #     batch_size=training_configurations[args.model]['batch_size'], shuffle=True, **kwargs)
-    # val_loader = torch.utils.data.DataLoader(
-    #     datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
-    #                                             **kwargs_dataset_test),
-    #     batch_size=training_configurations[args.model]['batch_size'], shuffle=False, **kwargs)
     
-    #for dev working on cpu less data
-    train_loader = torch.utils.data.DataLoader(
-        datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
-                                                **kwargs_dataset_train),
-        batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
-    val_loader = torch.utils.data.DataLoader(
-        datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
-                                                **kwargs_dataset_test),
-        batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
+    if not args.small_datasets:
+        train_loader = torch.utils.data.DataLoader(
+            datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
+                                                    **kwargs_dataset_train),
+            batch_size=training_configurations[args.model]['batch_size'], shuffle=True, **kwargs)
+        val_loader = torch.utils.data.DataLoader(
+            datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
+                                                    **kwargs_dataset_test),
+            batch_size=training_configurations[args.model]['batch_size'], shuffle=False, **kwargs)
+    else:
+        train_loader = torch.utils.data.DataLoader(
+            datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
+                                                    **kwargs_dataset_train),
+            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
+        val_loader = torch.utils.data.DataLoader(
+            datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
+                                                    **kwargs_dataset_test),
+            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
 
     # create model
     if args.model == 'resnet':
