@@ -209,14 +209,24 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': False}
 
+    # train_loader = torch.utils.data.DataLoader(
+    #     datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
+    #                                             **kwargs_dataset_train),
+    #     batch_size=training_configurations[args.model]['batch_size'], shuffle=True, **kwargs)
+    # val_loader = torch.utils.data.DataLoader(
+    #     datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
+    #                                             **kwargs_dataset_test),
+    #     batch_size=training_configurations[args.model]['batch_size'], shuffle=False, **kwargs)
+    
+    #for dev working on cpu less data
     train_loader = torch.utils.data.DataLoader(
         datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
                                                 **kwargs_dataset_train),
-        batch_size=training_configurations[args.model]['batch_size'], shuffle=True, **kwargs)
+        batch_size=training_configurations[args.model]['batch_size'], sampler=SubsetRandomSampler(100), shuffle=True, **kwargs)
     val_loader = torch.utils.data.DataLoader(
         datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
                                                 **kwargs_dataset_test),
-        batch_size=training_configurations[args.model]['batch_size'], shuffle=False, **kwargs)
+        batch_size=training_configurations[args.model]['batch_size'], sampler=SubsetRandomSampler(100), shuffle=False, **kwargs)
 
     # create model
     if args.model == 'resnet':
@@ -299,7 +309,10 @@ def train(train_loader, model, optimizer, epoch):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
-    top1 = AverageMeter()
+    if model.local_module_num == 1:
+        top1 = AverageMeter()
+    else:
+        top1 = [AverageMeter() for _ in range(model.local_module_num)]
 
     train_batches_num = len(train_loader)
 
@@ -318,10 +331,8 @@ def train(train_loader, model, optimizer, epoch):
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2)
-        print(len(output),len(loss))
         if args.joint_train:
             loss = early_exit_joint_loss(loss)
-            print(loss)
             loss.backward()
         
         optimizer.step()
@@ -330,10 +341,11 @@ def train(train_loader, model, optimizer, epoch):
         if args.local_module_num ==1:
             prec1 = accuracy(output[0].data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
-            top1.update(prec1.item(), x.size(0))
+            for idx, meter in enumerate(top1):
+                meter.update(prec1[0].item(), x.size(0))
             
         else:
-            prec1 = accuracy(output.data, target, topk=(1,))[0]
+            prec1 = accuracy_all_exits(output.data, target, topk=(1,))[0]
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
 
