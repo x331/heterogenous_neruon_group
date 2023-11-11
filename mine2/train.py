@@ -419,7 +419,7 @@ def validate(val_loader, model, epoch):
     fd.close()
     val_acc.append(top1[-1].ave)
 
-    return top1.ave
+    return top1[-1].ave
 
 
 def mkdir_p(path):
