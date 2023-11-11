@@ -505,8 +505,10 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
     output = torch.stack(output).detach()
 
-    _, pred = output.topk(maxk, 1, True, True)
+    _, pred = output.topk(maxk, 2, True, True)
     print(pred)
+    print(pred.shape)
+
     pred = pred.t()
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
