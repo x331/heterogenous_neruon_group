@@ -343,7 +343,7 @@ def train(train_loader, model, optimizer, epoch):
             losses.update(loss.data.item(), x.size(0))
             top1.update(prec1.item(), x.size(0))
         else:
-            prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
+            prec1 = accuracy_all_exits(output, target, topk=(1,5))[0]
             losses.update(loss.data.item(), x.size(0))
             for idx, meter in enumerate(top1):
                 meter.update(prec1[0].item(), x.size(0))
@@ -512,8 +512,9 @@ def accuracy_all_exits(output, target, topk=(1,)):
     res = []
     for k in topk:
         # correct_k = correct[:k].view(-1).float().sum(0)
-        correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(0)
+        correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(1)
         res.append(correct_k.mul_(100.0 / batch_size))
+    print(res)
     return res
 
 if __name__ == '__main__':
