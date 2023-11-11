@@ -355,9 +355,9 @@ def train(train_loader, model, optimizer, epoch):
             string = ('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
                       'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
-                      'Prec@1 {top1[0].value:.3f} ({top1[0].ave:.3f})\t'.format(
+                      'Prec@1 {top1.value:.3f} ({top1.ave:.3f})\t'.format(
                        epoch, i+1, train_batches_num, batch_time=batch_time,
-                       loss=losses, top1=top1))
+                       loss=losses, top1=top1[-1]))
 
             print(string)
             # print(weights)
@@ -411,9 +411,9 @@ def validate(val_loader, model, epoch):
     string = ('Test: [{0}][{1}/{2}]\t'
               'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
               'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
-              'Prec@1 {top1[-1].value:.3f} ({top1[-1].ave:.3f})\t'.format(
+              'Prec@1 {top1.value:.3f} ({top1.ave:.3f})\t'.format(
         epoch, (i + 1), train_batches_num, batch_time=batch_time,
-        loss=losses, top1=top1))
+        loss=losses, top1=top1[-1]))
     print(string)
     fd.write(string + '\n')
     fd.close()
