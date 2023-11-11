@@ -415,13 +415,13 @@ def validate(val_loader, model, epoch):
     string = ('Test: [{0}][{1}/{2}]\t'
               'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
               'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
-              'Prec@1 {top1[0].value:.3f} ({top1[0].ave:.3f})\t'.format(
+              'Prec@1 {top1[-1].value:.3f} ({top1[-1].ave:.3f})\t'.format(
         epoch, (i + 1), train_batches_num, batch_time=batch_time,
         loss=losses, top1=top1))
     print(string)
     fd.write(string + '\n')
     fd.close()
-    val_acc.append(top1.ave)
+    val_acc.append(top1[-1].ave)
 
     return top1.ave
 
@@ -517,7 +517,6 @@ def accuracy_all_exits(output, target, topk=(1,)):
         # correct_k = correct[:k].view(-1).float().sum(0)
         correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(1)
         res.append(correct_k.mul_(100.0 / batch_size))
-    print(res)
     return res
 
 if __name__ == '__main__':
