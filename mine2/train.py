@@ -493,7 +493,9 @@ def accuracy(output, target, topk=(1,)):
 
     res = []
     for k in topk:
+        print(corret.shape)
         correct_k = correct[:k].view(-1).float().sum(0)
+        print(correct_k)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
@@ -504,11 +506,8 @@ def accuracy_all_exits(output, target, topk=(1,)):
     output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 2, True, True)
-    print(pred.shape)
-
+    
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
-    print(target.view(1, -1).expand_as(pred).shape)
-    print(target.view(1, -1).expand_as(pred))
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
     print(correct.shape)
