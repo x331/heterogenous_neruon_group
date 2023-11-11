@@ -381,8 +381,8 @@ def validate(val_loader, model, epoch):
 
     end = time.time()
     for i, (input, target) in enumerate(val_loader):
-        target = target.device()
-        input = input.device()
+        target = target.to(device)
+        input = input.to(device)
         input_var = torch.autograd.Variable(input)
         target_var = torch.autograd.Variable(target)
 
