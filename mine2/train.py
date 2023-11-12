@@ -377,7 +377,7 @@ def validate(val_loader, model, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
-    per_exit_loss = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
     
     train_batches_num = len(val_loader)
 
@@ -398,6 +398,7 @@ def validate(val_loader, model, epoch):
                                  no_early_exit_pred = args.no_early_exit_pred)
             
         if args.joint_train:
+            per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
         else:
             loss = loss[-1]
