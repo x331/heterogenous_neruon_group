@@ -409,7 +409,7 @@ def validate(val_loader, model, epoch):
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), input.size(0)) 
         for idx, meter in enumerate(per_exit_loss_meter):
-            meter.update(per_exit_loss[idx].item(), x.size(0)) 
+            meter.update(per_exit_loss[idx].item(), input.size(0)) 
                                           
         # measure elapsed time
         batch_time.update(time.time() - end)
