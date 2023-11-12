@@ -286,6 +286,14 @@ class InfoProResNet(nn.Module):
             return [logits], [loss]
 
 
+def resnet8(**kwargs):
+    model = InfoProResNet(BasicBlock, [1, 1, 1], arch='resnet20', **kwargs)
+    return model
+
+def resnet14(**kwargs):
+    model = InfoProResNet(BasicBlock, [2, 2, 2], arch='resnet20', **kwargs)
+    return model
+
 def resnet20(**kwargs):
     model = InfoProResNet(BasicBlock, [3, 3, 3], arch='resnet20', **kwargs)
     return model
