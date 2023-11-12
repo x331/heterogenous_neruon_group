@@ -332,6 +332,7 @@ def train(train_loader, model, optimizer, epoch):
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2)
         if args.joint_train:
+            per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
             loss.backward()
         else:
@@ -362,6 +363,7 @@ def train(train_loader, model, optimizer, epoch):
             print(string)
             # print(weights)
             fd.write(string + '\n')
+            fd.write(f'per exit loss: {per_exit_loss}'+ '\n')
             fd.close()
 
 
