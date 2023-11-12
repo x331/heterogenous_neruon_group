@@ -103,7 +103,7 @@ class InfoProResNet(nn.Module):
                  joint_train=False,layerwise_train=False, locally_train=False):
         super(InfoProResNet, self).__init__()
 
-        assert arch in ['resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
+        assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
                                                   "For other networks, please set network configs in .configs."
 
         self.inplanes = wide_list[0]
