@@ -5,7 +5,7 @@ import time
 import errno
 import math
 import numpy as np
-
+import wandb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -108,6 +108,9 @@ parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='s
                     help='True to give just the prediction at the end of the network no early exits')
 parser.add_argument('--small_datasets', dest='small_datasets', action='store_true',
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
+parser.add_argument('--no-log', dest='no_log', action='store_true',
+                    help='do not log if this is set true')
+parser.set_defaults(no_log=False)
 
 args = parser.parse_args()
 
@@ -125,8 +128,7 @@ training_configurations = {
     }
 }
 
-record_path = './' \
-              + ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + str(args.dataset) \
               + '_' + str(args.model) + str(args.layers) \
               + '_K_' + str(args.local_module_num) \
@@ -143,6 +145,8 @@ record_path = './' \
               + '_ixy_2_' + str(args.ixy_2) \
               + ('_cos_lr_' if args.cos_lr else '')
 
+record_path = './logs/' + exp_name
+
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
 loss_file = record_path + '/loss_epoch.txt'
@@ -152,6 +156,17 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
+    if not args.no_log:
+        # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
+        wandb_api_key = os.environ.get('WANDB_API_KEY')
+        if wandb_api_key is None:
+            raise ValueError("Please set the WANDB_API_KEY environment variable.")
+        
+        wandb.login(key=wandb_api_key)
+        wandb.init(project='DGL-splits-resnet', entity='ghotifish', name=exp_name)
+        config = wandb.config
+        config.args = args
+
     global best_prec1
     best_prec1 = 0
     global val_acc
@@ -282,28 +297,45 @@ def main():
     else:
         start_epoch = 0
 
+    if not args.no_log:
+        wandb.watch(model)
+
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
 
         adjust_learning_rate(optimizer, epoch + 1)
 
         # train for one epoch
-        train(train_loader, model, optimizer, epoch)
+        train_loss, train_prec_lst = train(train_loader, model, optimizer, epoch)
+        train_prec1 = train_prec_lst[-1]
+        if not args.no_log:
+            wandb.log({"Train Loss": train_loss}, step=epoch)
+            wandb.log({"Prec@1": train_prec1}, step=epoch)
+            for idx, prec in enumerate(train_prec_lst):
+                wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
+
 
         # evaluate on validation set
-        prec1 = validate(val_loader, model, epoch)
+        val_loss, val_prec_lst = validate(val_loader, model, epoch)
+        val_prec1 = val_prec_lst[-1]
+
+        if not args.no_log:
+            wandb.log({"Val Loss": val_loss}, step=epoch)
+            wandb.log({"Val Prec@1": val_prec1}, step=epoch)
+            for idx, prec in enumerate(val_prec_lst):
+                wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
 
         # remember best prec@1 and save checkpoint
-        is_best = prec1 > best_prec1
-        best_prec1 = max(prec1, best_prec1)
+        is_best = val_prec1 > best_prec1
+        best_prec1 = max(val_prec1, best_prec1)
 
-        save_checkpoint({
-            'epoch': epoch + 1,
-            'state_dict': model.state_dict(),
-            'best_acc': best_prec1,
-            'optimizer': optimizer.state_dict(),
-            'val_acc': val_acc,
+        # save_checkpoint({
+        #     'epoch': epoch + 1,
+        #     'state_dict': model.state_dict(),
+        #     'best_acc': best_prec1,
+        #     'optimizer': optimizer.state_dict(),
+        #     'val_acc': val_acc,
 
-        }, is_best, checkpoint=check_point)
+        # }, is_best, checkpoint=check_point)
         print('Best accuracy: ', best_prec1)
         np.savetxt(accuracy_file, np.array(val_acc))
 
@@ -371,6 +403,9 @@ def train(train_loader, model, optimizer, epoch):
             fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
             fd.close()
 
+        # ave_top1 = [meter.ave for meter in top1]
+        return losses.ave, [meter.ave for meter in top1]
+
 
 def validate(val_loader, model, epoch):
     """Perform validation on the validation set"""
@@ -429,7 +464,9 @@ def validate(val_loader, model, epoch):
     fd.close()
     val_acc.append(top1[-1].ave)
 
-    return top1[-1].ave
+    # top1[-1].ave
+    return losses.ave, [meter.ave for meter in top1]
+
 
 
 def mkdir_p(path):
