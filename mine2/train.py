@@ -163,7 +163,7 @@ def main():
             raise ValueError("Please set the WANDB_API_KEY environment variable.")
         
         wandb.login(key=wandb_api_key)
-        wandb.init(project='DGL-splits-resnet', entity='ghotifish', name=exp_name)
+        wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
         config = wandb.config
         config.args = args
 
