@@ -203,7 +203,8 @@ class InfoProResNet(nn.Module):
     def forward(self, img, target=None,
                 ixx_1=0, ixy_1=0,
                 ixx_2=0, ixy_2=0,
-                no_early_exit_pred = False):
+                no_early_exit_pred = False,
+                target_module=None):
 
         if self.training or not no_early_exit_pred:
             stage_i = 0
@@ -231,9 +232,19 @@ class InfoProResNet(nn.Module):
                     else:
                         loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
+                        
+                        if local_module_i == target_module:
+                            pred_per_exit.append(preds)
+                            for _ in range(self.local_module_num - 1 - local_module_i):
+                                loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                pred_per_exit.append(torch.zeros_like(preds))
+                            
+                            return loss_per_exit, pred_per_exit
+                    
                     pred_per_exit.append(preds)
                     local_module_i += 1                    
-
+                        
+            curr_phase += 1
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
@@ -253,6 +264,15 @@ class InfoProResNet(nn.Module):
                             else:
                                 loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
+                                
+                                if target_module == local_module_i:
+                                    pred_per_exit.append(preds)
+                                    for _ in range(self.local_module_num - 1 - local_module_i):
+                                        loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                        pred_per_exit.append(torch.zeros_like(preds))
+                                    
+                                    return pred_per_exit, loss_per_exit
+                            
                             pred_per_exit.append(preds)
                             local_module_i += 1
                             
