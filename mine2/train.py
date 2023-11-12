@@ -368,7 +368,7 @@ def train(train_loader, model, optimizer, epoch):
             # print(weights)
             fd.write(string + '\n')
             fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-            fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+            fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
             fd.close()
 
 
@@ -425,7 +425,7 @@ def validate(val_loader, model, epoch):
     print(string)
     fd.write(string + '\n')
     fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-    fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+    fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
     fd.close()
     val_acc.append(top1[-1].ave)
 
