@@ -305,22 +305,26 @@ def main():
         adjust_learning_rate(optimizer, epoch + 1)
 
         # train for one epoch
-        train_loss, train_prec_lst = train(train_loader, model, optimizer, epoch)
+        train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
         train_prec1 = train_prec_lst[-1]
         if not args.no_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
             wandb.log({"Prec@1": train_prec1}, step=epoch)
+            for idx, loss in enumerate(train_loss_lst):
+                wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(train_prec_lst):
                 wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
 
 
         # evaluate on validation set
-        val_loss, val_prec_lst = validate(val_loader, model, epoch)
+        val_loss, val_loss_lst, val_prec_lst = validate(val_loader, model, epoch)
         val_prec1 = val_prec_lst[-1]
 
         if not args.no_log:
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
+            for idx, loss in enumerate(val_loss_lst):
+                wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(val_prec_lst):
                 wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
 
@@ -404,7 +408,7 @@ def train(train_loader, model, optimizer, epoch):
             fd.close()
 
         # ave_top1 = [meter.ave for meter in top1]
-        return losses.ave, [meter.ave for meter in top1]
+        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1]
 
 
 def validate(val_loader, model, epoch):
@@ -465,7 +469,7 @@ def validate(val_loader, model, epoch):
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
-    return losses.ave, [meter.ave for meter in top1]
+    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1]
 
 
 
