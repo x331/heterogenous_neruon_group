@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=0 python train.py --dataset cifar10 --model resnet --layers 32 --droprate 0.0 --cos_lr --local_module_num 16  --joint_train --local_loss_mode cross_entropy --aux_net_widen 1 --aux_net_feature_dim 128 --ixx_1 5 --ixy_1 1    --ixx_2 0   --ixy_2 0   --aux_net_config 1c2f
+CUDA_VISIBLE_DEVICES=0 python train.py --dataset cifar10 --model resnet --layers 32 --droprate 0.0 --cos_lr --local_module_num 16  --joint_train --local_loss_mode cross_entropy --train_total_epochs 500 --aux_net_widen 1 --aux_net_feature_dim 128  --aux_net_config 1c2f
