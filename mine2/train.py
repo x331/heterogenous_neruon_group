@@ -313,6 +313,8 @@ def train(train_loader, model, optimizer, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+
 
     train_batches_num = len(train_loader)
 
@@ -345,7 +347,9 @@ def train(train_loader, model, optimizer, epoch):
         prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
         losses.update(loss.data.item(), x.size(0))
         for idx, meter in enumerate(top1):
-            meter.update(prec1[idx].item(), x.size(0))            
+            meter.update(prec1[idx].item(), x.size(0))  
+        for idx, meter in enumerate(per_exit_loss_meter):
+            meter.update(per_exit_loss[idx].item(), x.size(0))            
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -363,7 +367,8 @@ def train(train_loader, model, optimizer, epoch):
             print(string)
             # print(weights)
             fd.write(string + '\n')
-            fd.write(f'per exit loss: {per_exit_loss}'+ '\n')
+            fd.write(f'per exit loss: {[(meter.value,meter.ave) for meter in per_exit_loss]}'+ '\n')
+            fd.write(f'per exit loss: {[(meter.value,meter.ave) for meter in top1]}'+ '\n')
             fd.close()
 
 
@@ -372,7 +377,8 @@ def validate(val_loader, model, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
-        
+    per_exit_loss = [AverageMeter() for _ in range(model.module.local_module_num)]
+    
     train_batches_num = len(val_loader)
 
 
@@ -401,7 +407,9 @@ def validate(val_loader, model, epoch):
         losses.update(loss.data.item(), input.size(0))
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), input.size(0)) 
-                           
+        for idx, meter in enumerate(per_exit_loss_meter):
+            meter.update(per_exit_loss[idx].item(), x.size(0)) 
+                                          
         # measure elapsed time
         batch_time.update(time.time() - end)
         end = time.time()
@@ -415,6 +423,8 @@ def validate(val_loader, model, epoch):
         loss=losses, top1=top1[-1]))
     print(string)
     fd.write(string + '\n')
+    fd.write(f'per exit loss: {[(meter.value,meter.ave) for meter in per_exit_loss]}'+ '\n')
+    fd.write(f'per exit loss: {[(meter.value,meter.ave) for meter in top1]}'+ '\n')
     fd.close()
     val_acc.append(top1[-1].ave)
 
