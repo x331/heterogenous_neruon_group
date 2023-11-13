@@ -91,6 +91,9 @@ parser.add_argument('--ixy_1', default=0.0, type=float,)   # \lambda_2 for 1st l
 parser.add_argument('--ixx_2', default=0.0, type=float,)   # \lambda_1 for (K-1)th local module
 parser.add_argument('--ixy_2', default=0.0, type=float,)   # \lambda_2 for (K-1)th local module
 
+# layerwise training
+parser.add_argument('--layerwise_train', dest='layerwise_train', action='store_true', help='True if training early exit network in layerwise manner')
+
 #I added
 # parser.add_argument('--dataloader_workers', default=12, type=int,
 #                     help='number of works dataloader should have '
