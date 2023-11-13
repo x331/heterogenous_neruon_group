@@ -310,7 +310,8 @@ def main():
                                 weight_decay=training_configurations[args.model]['weight_decay'])
     
     
-    for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
+    epoch = start_epoch
+    while epoch < training_configurations[args.model]['epochs']:
         if args.layerwise_train and epoch == training_configurations[args.model]['epochs'] - 1:
             # set optimizer to only update current module parameters, and reset epoch number
             epoch = 0
@@ -377,6 +378,7 @@ def main():
         # }, is_best, checkpoint=check_point)
         print('Best accuracy: ', best_prec1)
         np.savetxt(accuracy_file, np.array(val_acc))
+        epoch += 1
 
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
