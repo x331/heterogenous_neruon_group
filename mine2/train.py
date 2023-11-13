@@ -158,7 +158,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def main():
     if not args.no_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
-        wandb_api_key = "209874adddd9a0c1366d79d41f333f6be60ebf96"
+        wandb_api_key = os.environ.get('WANDB_API_KEY')
         if wandb_api_key is None:
             raise ValueError("Please set the WANDB_API_KEY environment variable.")
         
@@ -279,6 +279,9 @@ def main():
                                 momentum=training_configurations[args.model]['momentum'],
                                 nesterov=training_configurations[args.model]['nesterov'],
                                 weight_decay=training_configurations[args.model]['weight_decay'])
+
+    print("Model module 1:", model.modules()[0])
+
 
     model = torch.nn.DataParallel(model).to(device)
 
