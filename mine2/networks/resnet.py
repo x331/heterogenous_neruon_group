@@ -246,14 +246,14 @@ class InfoProResNet(nn.Module):
                                 loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                                loss.backwards()
+                                loss.backward()
                                 print('hi')
                                 infoproloss = loss
                             if not self.infopro_loss_train:
                                 print(2)
                                 loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 print('hi')
-                                loss_clas.backwards()
+                                loss_clas.backward()
                             if self.classification_loss_train:
                                 print(3)
                                 loss = classloss
