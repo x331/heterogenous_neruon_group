@@ -600,16 +600,9 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
 
     prob = torch.softmax(output,dim=2)
-    # print(prob.shape)
-    # print(torch.log(prob).shape)
-    # print((prob*torch.log(prob)).shape)
-    # print((1/(np.log(output.shape[2]))))
-    # print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
-    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2))
+    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
     p = p+1
     e = p>.3
-    print(e.shape)
-    print(p.shape)
     exits = torch.zeros(p.shape[0],1)
     exits_acc = torch.zeros(p.shape[0],1)
     for m in range(p.shape[0]):
