@@ -369,8 +369,8 @@ def train(train_loader, model, optimizer, epoch):
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2)
+        per_exit_loss = loss
         if args.joint_train:
-            per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
             loss.backward()
         else:
@@ -436,8 +436,8 @@ def validate(val_loader, model, epoch):
                                  target=target_var,
                                  no_early_exit_pred = args.no_early_exit_pred)
             
+        per_exit_loss = loss
         if args.joint_train:
-            per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
         else:
             loss = loss[-1]
