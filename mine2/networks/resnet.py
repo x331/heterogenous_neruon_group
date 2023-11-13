@@ -218,13 +218,7 @@ class InfoProResNet(nn.Module):
                 no_early_exit_pred = False,
                 target_module=None):
 
-        if self.training or not no_early_exit_pred:
-            for child in self.children():
-                for param in child.parameters():
-                    param.requires_grad = False
-                    print(param.requires_grad)
-
-            
+        if self.training or not no_early_exit_pred:            
             stage_i = 0
             layer_i = 0
             local_module_i = 0
@@ -289,12 +283,6 @@ class InfoProResNet(nn.Module):
                         
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
-                    
-                    for child in eval('self.layer' + str(stage_i))[layer_i].children():
-                        for param in child.parameters():
-                            param.requires_grad = False
-                            # print(param)
-                            # print(param.requires_grad)
                             
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
                     
