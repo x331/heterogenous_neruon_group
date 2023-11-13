@@ -326,7 +326,11 @@ def main():
         adjust_learning_rate(optimizer, epoch + 1)
 
         # train for one epoch
-        train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch, curr_module)
+        if args.layerwise_train:
+            train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch, curr_module)
+        else:
+            train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
+        
         train_prec1 = train_prec_lst[-1]
         if not args.no_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
@@ -365,7 +369,7 @@ def main():
         np.savetxt(accuracy_file, np.array(val_acc))
 
 
-def train(train_loader, model, optimizer, epoch, curr_module):
+def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
