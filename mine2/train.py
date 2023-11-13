@@ -132,11 +132,12 @@ training_configurations = {
     'resnet': {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
-        'initial_learning_rate': args.lr,
+        # 'initial_learning_rate': args.lr,
 
-        # 'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
+        'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
-        'lr_decay_rate': args.lr_decay,
+        'lr_decay_rate': .1,
+        # 'lr_decay_rate': args.lr_decay,
         'momentum': 0.9,
         'nesterov': True,
         'weight_decay': args.weight_decay,
@@ -598,6 +599,9 @@ def accuracy_all_exits(output, target, topk=(1,)):
 
     _, pred = output.topk(maxk, 2, True, True)
     
+    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
 
     prob = torch.softmax(output,dim=2)
     p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
@@ -607,17 +611,17 @@ def accuracy_all_exits(output, target, topk=(1,)):
     exits = torch.zeros(p.shape[0],1,device='cpu')
     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
     for m in range(p.shape[0]):
-        print(e[m])
         exits[m] = e[m].sum()
     print(exits)
     for m in range(p.shape[0]):
         if exits[0] != 0:
-            sum = p[m][e[m]].sum()
+            correct[:,:k][e[m]].reshape(correct.shape[0],-1).float().sum(1)
+            sum = p[m][e[m]]
+            print(sum)
             exits_acc[m] = sum/exits[m]
     print(exits_acc)
     
-    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
-    correct = pred.eq(target.view(1, -1).expand_as(pred))
+
 
     res = []
     for k in topk:
