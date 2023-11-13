@@ -336,9 +336,9 @@ def main():
 
         # train for one epoch
         if args.layerwise_train:
-            train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
+            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch)
         
         train_prec1 = train_prec_lst[-1]
         
@@ -352,7 +352,7 @@ def main():
 
 
         # evaluate on validation set
-        val_loss, val_loss_lst, val_prec_lst = validate(val_loader, model, epoch)
+        val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
         val_prec1 = val_prec_lst[-1]
 
         if not args.no_wandb_log:
