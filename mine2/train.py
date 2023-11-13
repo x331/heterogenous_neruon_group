@@ -579,9 +579,8 @@ def accuracy_all_exits(output, target, topk=(1,)):
 
     _, pred = output.topk(maxk, 2, True, True)
     
-    print(output.shape)
-    print(output)
-    print(torch.softmax(output)*torch.log(torch.softmax(output,dim=3))*(1/(torch.log(output.shape[2]))))
+
+    print(torch.softmax(output,dim=2)*torch.log(torch.softmax(output,dim=2))*(1/(torch.log(output.shape[2]))).shape)
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
@@ -603,7 +602,7 @@ def accuracy_all_exits_exit_accurac(output, target, topk=(1,)):
     
     print(output.shape)
     print(output)
-    print(torch.softmax(output)*torch.log(torch.softmax(output,dim=3))*(1/(torch.log(output.shape[2]))))
+    print(torch.softmax(output,dim=2)*torch.log(torch.softmax(output,dim=2))*(1/(torch.log(output.shape[2]))))
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
