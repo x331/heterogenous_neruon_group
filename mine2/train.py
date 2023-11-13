@@ -117,11 +117,13 @@ parser.add_argument('--lr_decay', default=.1, type=float,
 parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='weight decay factor')
 parser.add_argument('--classification_loss_train', action='store_true',
-                    help='use the clasclassification loss to train')
+                    help='use the classification loss to train')
 parser.add_argument('--infopro_loss_train', action='store_true',
                     help='use the infopro loss to train')
-parser.add_argument('--infopro_loss_train', action='store_true',
-                    help='use the infopro loss to train')
+parser.add_argument('--infopro_classification_loss_train', action='store_true',
+                    help='use the infopro and classification loss to train')
+parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
+                    help='given value v times infopro plus (1-v) times classifcation is now the loss')
 
 args = parser.parse_args()
 
@@ -598,15 +600,16 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
 
     prob = torch.softmax(output,dim=2)
-    print(prob.shape)
-    print(torch.log(prob).shape)
-    print((prob*torch.log(prob)).shape)
-    print((1/(np.log(output.shape[2]))))
-    print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
+    # print(prob.shape)
+    # print(torch.log(prob).shape)
+    # print((prob*torch.log(prob)).shape)
+    # print((1/(np.log(output.shape[2]))))
+    # print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
     print(p.shape)
     print(torch.tensor([p>.7]).shape)
     print((p[p>.7].sum(dim=1,keepdim=True)).shape)
+    print(p[p>.7].sum(dim=1,keepdim=True))
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
@@ -618,7 +621,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_all_exits_exit_accurac(output, target, topk=(1,)):
+def accuracy_all_exits_exit_accuracy(output, target, topk=(1,)):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
