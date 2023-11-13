@@ -264,7 +264,7 @@ def main():
                                                     **kwargs_dataset_train),
             batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(10, size=100)),  **kwargs)
         val_loader = torch.utils.data.DataLoader(
-            datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_test,
+            datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
                                                     **kwargs_dataset_test),
             batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(10, size=100)),  **kwargs)
 
