@@ -611,10 +611,10 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print(p.shape)
     exits = torch.zeros(p.shape[0],1)
     exits_acc = torch.zeros(p.shape[0],1)
-    for m in p.shape[0]:
+    for m in range(p.shape[0]):
         exits[m] = e[m].sum()
     print(exits)
-    for m in p.shape[0]:
+    for m in range(p.shape[0]):
         sum = p[m][e[m]].sum()
         exits_acc[m] = sum/exit[m]
     print(exits_acc)
