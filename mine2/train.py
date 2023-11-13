@@ -315,9 +315,10 @@ def main():
              joint_train = args.joint_train,
              layerwise_train = args.layerwise_train,
              locally_train = args.locally_train,
-            infopro_loss_train=args.infopro_loss_train,  
-            classification_loss_train=args.classification_loss_train,
-            infopro_classification_ratio= args.infopro_classification_ratio)
+             infopro_loss_train=args.infopro_loss_train,  
+             classification_loss_train=args.classification_loss_train,
+             infopro_classification_loss_train = args.infopro_classification_loss_train,
+             infopro_classification_ratio= args.infopro_classification_ratio)
     else:
         raise NotImplementedError
     

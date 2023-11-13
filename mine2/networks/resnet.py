@@ -101,7 +101,7 @@ class InfoProResNet(nn.Module):
                  aux_net_config='1c2f', local_loss_mode='contrast',
                  aux_net_widen=1, aux_net_feature_dim=128,
                  joint_train=False,layerwise_train=False, locally_train=False,
-                 infopro_loss_train=False,  classification_loss_train=False, infopro_classification_ratio=False):
+                 infopro_loss_train=False,  classification_loss_train=False, infopro_classification_loss_train=False, infopro_classification_ratio=False):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -232,16 +232,26 @@ class InfoProResNet(nn.Module):
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
                     if not self.joint_train and not self.layerwise_train and self.locally_train:
-                        ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                        loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                        loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                        loss.backward()
-                        x = x.detach()
-                        loss_per_exit.append(loss_ixy)
-                        pred_per_exit.append(preds)
+                        if self.infopro_loss_train or self.infopro_classification_loss_train:
+                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                            loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                            loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                            loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                            if self.infopro_loss_train:
+                                loss.backward()
+                                loss_per_exit.append(loss_ixy)
+                                pred_per_exit.append(preds)
+                            else:
+                                loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                infoproloss = loss
+                                loss =  infoproloss*(self.infopro_classification_ratio)+loss_clas(1-self.infopro_classification_ratio)
+                                loss.backward()
+                                loss_per_exit.append(loss_ixy)
+                                pred_per_exit.append(preds)   
+                            x = x.detach()
+
                     else:
                         loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
