@@ -116,6 +116,8 @@ parser.add_argument('--lr_decay', default=.1, type=float,
                     help='learning rate decay factor')
 parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='weight decay factor')
+parser.add_argument('--classification_loss', action='store_true',
+                    help='do not log to wandb if this is set true')
 
 args = parser.parse_args()
 
@@ -154,8 +156,7 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_joint_train_' + str(args.joint_train) \
               + '_layerwise_train_' + str(args.layerwise_train) \
               + '_locally_train_' + str(args.locally_train) \
-              + '_train_total_epochs_' + str(args.train_total_epochs) \
-              + ('_cos_lr_' if args.cos_lr else '') 
+              + '_train_total_epochs_' + str(args.train_total_epochs)
 record_path = './logs/' + exp_name
 
 record_file = record_path + '/training_process.txt'
@@ -600,7 +601,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
     print(p.shape)
-    print([p[:,:]>.7].shape)
+    print([p>.7])
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
