@@ -605,10 +605,14 @@ def accuracy_all_exits(output, target, topk=(1,)):
     # print((prob*torch.log(prob)).shape)
     # print((1/(np.log(output.shape[2]))))
     # print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
-    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2))*(-1)-1
-    e = p>.00000000000001
+    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2))
     print(torch.max(p))
     print(torch.min(p))
+    print(p*(-1)-1)
+    print(torch.max(p))
+    print(torch.min(p))
+    e = p>.00000000000001
+
     print(e.shape)
     print(p.shape)
     exits = torch.zeros(p.shape[0],1)
