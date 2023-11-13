@@ -220,7 +220,7 @@ class InfoProResNet(nn.Module):
             if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
-                    if not self.joint_train:
+                    if not self.joint_train and not self.layerwise_train:
                         ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                         ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                         ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
@@ -251,7 +251,7 @@ class InfoProResNet(nn.Module):
                     if local_module_i <= self.local_module_num - 2:
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
-                            if not self.joint_train:
+                            if not self.joint_train and not self.layerwise_train:
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
