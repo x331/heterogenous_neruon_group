@@ -280,7 +280,9 @@ def main():
                                 nesterov=training_configurations[args.model]['nesterov'],
                                 weight_decay=training_configurations[args.model]['weight_decay'])
 
-    print("Model module 1:", model.modules()[0])
+    modules = [module for module in model.modules()]
+    print("Model modules:", modules)
+    print("Module 1:", modules[0])
 
 
     model = torch.nn.DataParallel(model).to(device)
