@@ -135,7 +135,6 @@ training_configurations = {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         # 'initial_learning_rate': args.lr,
-
         'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
         'lr_decay_rate': .1,
@@ -622,7 +621,6 @@ def adjust_learning_rate(optimizer, epoch):
             if epoch <= 10:
                 param_group['lr'] = 0.5 * training_configurations[args.model]['initial_learning_rate']\
                                 * (1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs'])) * (epoch - 1) / 10 + 0.01 * (11 - epoch) / 10
-                print(0.5 * training_configurations[args.model]['initial_learning_rate'],(1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs'])) * (epoch - 1) / 10, 0.01 * (11 - epoch) / 10)
             else:
                 param_group['lr'] = 0.5 * training_configurations[args.model]['initial_learning_rate']\
                                     * (1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs']))
