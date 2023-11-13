@@ -304,7 +304,10 @@ def main():
         curr_module = -1
         epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
     
-    print("!!!!Keys:", model.state_dict().keys())
+    for key in model.state_dict().keys():
+        if "aux" in key:
+            print("Classifier:", key)
+    
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
         if args.layerwise_train:  
             adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
