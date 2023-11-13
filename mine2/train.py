@@ -110,7 +110,8 @@ parser.add_argument('--small_datasets', dest='small_datasets', action='store_tru
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
 parser.add_argument('--no-log', dest='no_log', action='store_true',
                     help='do not log if this is set true')
-parser.set_defaults(no_log=False)
+parser.set_defaults('--no_wandb_log', action='store_true',
+                    help='do not log to wandb if this is set true')
 
 args = parser.parse_args()
 
@@ -164,6 +165,8 @@ def main():
         wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
         config = wandb.config
         config.args = args
+        if no_wandb_log:
+            wandb.init(mode="disabled")
 
     global best_prec1
     best_prec1 = 0
@@ -586,7 +589,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
     print(p.shape)
-    print([p>.7].shape)
+    print([p[:,:]>.7].shape)
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
