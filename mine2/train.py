@@ -171,10 +171,32 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_classification_loss_train_' + str(args.classification_loss_train) \
               + '_infopro_loss_train_' + str(args.infopro_loss_train) \
               + '_infopro_classification_loss_train_' + str(args.infopro_classification_loss_train)  \
-              + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)      
+              + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)
+                   
+file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+              + str(args.dataset) \
+              + '_' + str(args.model) + str(args.layers) \
+              + '_K_' + str(args.local_module_num) \
+              + '_' + str(args.name) \
+              + '/' \
+              + 'no_' + str(args.no) \
+              + '_aux_net_config_' + str(args.aux_net_config) \
+              + '_local_loss_mode_' + str(args.local_loss_mode) \
+              + '_aux_net_widen_' + str(args.aux_net_widen) \
+              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
+              + '_ixx_1_' + str(args.ixx_1) \
+              + '_ixy_1_' + str(args.ixy_1) \
+              + '_ixx_2_' + str(args.ixx_2) \
+              + '_ixy_2_' + str(args.ixy_2) \
+              + ('_cos_lr_' if args.cos_lr else '') \
+              + '_joint_train_' + str(args.joint_train) \
+              + '_layerwise_train_' + str(args.layerwise_train) \
+              + '_locally_train_' + str(args.locally_train) \
+              + '_train_total_epochs_' + str(args.train_total_epochs)   
                       
                           
-record_path = './logs/' + exp_name
+# record_path = './logs/' + exp_name
+record_path = './logs/' + file_exp_name
 
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
