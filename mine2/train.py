@@ -581,7 +581,8 @@ def accuracy_all_exits(output, target, topk=(1,)):
     prob = torch.softmax(output,dim=2)
     print(prob*torch.log(prob).shape)
     print((1/(np.log(output.shape[2]))))
-    print(prob*torch.log(prob)*(1/(np.log(output.shape[2]))).sum(dim=2).shape)
+    print(prob*torch.log(prob).sum(dim=2).shape)
+    print((1/(np.log(output.shape[2]))))
     print(prob[0][0])
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
