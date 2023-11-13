@@ -244,7 +244,6 @@ class InfoProResNet(nn.Module):
                     pred_per_exit.append(preds)
                     local_module_i += 1                    
                         
-            curr_phase += 1
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
