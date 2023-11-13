@@ -617,7 +617,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     for m in range(p.shape[0]):
         if exits[0] != 0:
             correct[:,:1][e[m]].reshape(correct.shape[0],-1).float().sum(1)
-            sum = p[m][e[m]]
+            sum = print(correct)
             print(sum)
             exits_acc[m] = sum/exits[m]
     print(exits_acc)
