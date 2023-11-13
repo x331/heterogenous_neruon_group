@@ -609,6 +609,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     e = p>.7
     print(e.shape)
     print(e)
+    print(p[e])
     print(p[e].shape)
     print(e.sum(dim=1).shape)
     print(p[e].sum(dim=1).shape)
