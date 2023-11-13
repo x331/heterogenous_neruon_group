@@ -618,8 +618,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
             print(sum)
             avg =  sum.mul_(100.0 / batch_size.float())
             print(avg)
-            print(sum)
-            exits_acc[m] = sum/exits[m]
+            exits_acc[m] = avg
     print(exits_acc)
     
 
