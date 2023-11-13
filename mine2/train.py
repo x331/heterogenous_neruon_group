@@ -124,7 +124,7 @@ parser.add_argument('--infopro_classification_loss_train', action='store_true',
                     help='use the infopro and classification loss to train')
 parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
                     help='given value v times infopro plus (1-v) times classifcation is now the loss')
-parser.add_argument('--confidence_threshold', default=.7, type=float,
+parser.add_argument('--confidence_threshold', default=.5, type=float,
                     help='what entropy based confidence level is needed to early exit')
 
 
