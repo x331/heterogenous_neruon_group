@@ -234,13 +234,19 @@ class InfoProResNet(nn.Module):
                         loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
                         
-                        if local_module_i == target_module:
-                            pred_per_exit.append(preds)
-                            for _ in range(self.local_module_num - 1 - local_module_i):
-                                loss_per_exit.append(torch.zeros_like(loss_ixy))
-                                pred_per_exit.append(torch.zeros_like(preds))
-                            
-                            return loss_per_exit, pred_per_exit
+                        if self.layerwise_train:
+                            # means we reached the classifier of the target module
+                            if target_module == local_module_i:
+                                pred_per_exit.append(preds)
+                                for _ in range(self.local_module_num - 1 - local_module_i):
+                                    loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                    pred_per_exit.append(torch.zeros_like(preds))
+                                
+                                loss_ixy.backward()
+                                return pred_per_exit, loss_per_exit
+                            else:
+                                # detach the current module from computation graph, only need to keep the target module
+                                x = x.detach()
                     
                     pred_per_exit.append(preds)
                     local_module_i += 1                    
