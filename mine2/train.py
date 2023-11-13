@@ -579,6 +579,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
 
     prob = torch.softmax(output,dim=2)
+    print(torch.log(prob))
     print(prob*torch.log(prob).shape)
     print((1/(np.log(output.shape[2]))))
     print(prob*torch.log(prob).sum(dim=2).shape)
