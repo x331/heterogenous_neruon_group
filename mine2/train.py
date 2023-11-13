@@ -396,8 +396,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                              ixy_2=args.ixy_2,
                              target_module=curr_module)
         
-        print("output: ", output)
-        print("loss: ", loss)
+        print("output shape: ", output[0].shape)
+        print("loss length: ", len(loss))
         
         if args.joint_train:
             per_exit_loss = loss
