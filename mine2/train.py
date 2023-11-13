@@ -157,15 +157,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
-    # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
-    wandb_api_key = os.environ.get('')
     
-    wandb.login(key=wandb_api_key)
-    wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
-    config = wandb.config
-    config.args = args
-    if args.no_wandb_log:
-        wandb.init(mode="disabled")
+    if not args.no_wandb_log:
+        # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
+        wandb_api_key = os.environ.get('')
+        
+        wandb.login(key=wandb_api_key)
+        wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
+        config = wandb.config
+        config.args = args
 
     global best_prec1
     best_prec1 = 0
@@ -297,7 +297,7 @@ def main():
     else:
         start_epoch = 0
 
-    if not args.no_log:
+    if not args.no_wandb_log:
         wandb.watch(model)
 
     if args.layerwise_train:
@@ -319,8 +319,8 @@ def main():
             train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
         
         train_prec1 = train_prec_lst[-1]
-        if not args.no_log:
-            
+        
+        if not args.no_wandb_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
             wandb.log({"Prec@1": train_prec1}, step=epoch)
             for idx, loss in enumerate(train_loss_lst):
@@ -333,8 +333,7 @@ def main():
         val_loss, val_loss_lst, val_prec_lst = validate(val_loader, model, epoch)
         val_prec1 = val_prec_lst[-1]
 
-        if not args.no_log:
-
+        if not args.no_wandb_log:
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
             for idx, loss in enumerate(val_loss_lst):
