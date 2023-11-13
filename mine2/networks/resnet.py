@@ -219,22 +219,6 @@ class InfoProResNet(nn.Module):
             x = self.bn1(x)
             x = self.relu(x)
 
-            # TODO: add memory of what has been frozen to check
-            if train and self.layerwise_train and target_module > 0:
-                last_module_seen = False
-                print("Starting gradient freeze")
-                for name, param in self.named_parameters():
-                    param.requires_grad = False
-                    if "aux_classifier_{}".format(target_module + 1) in name:
-                        if not last_module_seen:
-                            print("Found last module")
-                        last_module_seen = True
-                    elif last_module_seen:
-                        print("---Exiting module before " + name + "---")
-                        break
-
-
-            print("--- Exited model ---")
             if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
