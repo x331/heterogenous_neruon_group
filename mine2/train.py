@@ -457,7 +457,7 @@ def validate(val_loader, model, epoch):
             output, loss = model(img=input_var,
                                  target=target_var,
                                  no_early_exit_pred = args.no_early_exit_pred,
-                                 layerwise_train=False)
+                                 train=False)
             
         per_exit_loss = loss
         if args.joint_train or args.layerwise_train:
