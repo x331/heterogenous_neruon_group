@@ -283,11 +283,12 @@ class InfoProResNet(nn.Module):
                         
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
+                    
                     for child in eval('self.layer' + str(stage_i))[layer_i].children():
                         for param in child.parameters():
                             param.requires_grad = False
-                            print(param)
-                            print(param.requires_grad)
+                            # print(param)
+                            # print(param.requires_grad)
                             
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
                     
