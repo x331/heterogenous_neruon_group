@@ -205,7 +205,8 @@ class InfoProResNet(nn.Module):
                 ixx_1=0, ixy_1=0,
                 ixx_2=0, ixy_2=0,
                 no_early_exit_pred = False,
-                target_module=None):
+                target_module=None,
+                train=True):
 
         if self.training or not no_early_exit_pred:
             stage_i = 0
@@ -219,7 +220,7 @@ class InfoProResNet(nn.Module):
             x = self.relu(x)
 
             # TODO: add memory of what has been frozen to check
-            if self.layerwise_train and target_module > 0:
+            if train and self.layerwise_train and target_module > 0:
                 last_module_seen = False
                 print("Starting gradient freeze")
                 for name, param in self.named_parameters():
