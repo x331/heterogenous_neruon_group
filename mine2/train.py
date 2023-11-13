@@ -176,7 +176,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
-    print(args.no_wandb_log)
     
     if not args.no_wandb_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
@@ -615,14 +614,10 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print(exits)
     for m in range(p.shape[0]):
         if exits[0] != 0:
-            print(correct[m,:1])
-            print(e[m].reshape(1,e.shape[1]))
-            print(correct[m,:1][e[m].reshape(1,e.shape[1])])
-            print(correct[m,:1].shape)
-            print(e[m].reshape(1,e.shape[1]).shape)
-            print(correct[m,:1][e[m].reshape(1,e.shape[1])].shape)
-            correct[:,:1][e[m]].reshape(correct.shape[0],-1).float().sum(1)
-            sum = print(correct)
+            sum = correct[m,:1][e[m].reshape(1,e.shape[1])].sum()
+            print(sum)
+            avg =  sum.mul_(100.0 / batch_size)
+            print(avg)
             print(sum)
             exits_acc[m] = sum/exits[m]
     print(exits_acc)
