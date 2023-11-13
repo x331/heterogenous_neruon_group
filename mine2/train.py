@@ -333,12 +333,17 @@ def main():
         
         train_prec1 = train_prec_lst[-1]
         if not args.no_log:
-            wandb.log({"Train Loss": train_loss}, step=epoch)
-            wandb.log({"Prec@1": train_prec1}, step=epoch)
+            if args.layerwise_train:
+                step = curr_module * training_configurations[args.model]['epochs'] + epoch
+            else:
+                step = epoch
+            
+            wandb.log({"Train Loss": train_loss}, step=step)
+            wandb.log({"Prec@1": train_prec1}, step=step)
             for idx, loss in enumerate(train_loss_lst):
-                wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
+                wandb.log({f"Train Loss_{idx}": loss}, step=step)
             for idx, prec in enumerate(train_prec_lst):
-                wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
+                wandb.log({f"Prec@1_{idx}": prec}, step=step)
 
 
         # evaluate on validation set
@@ -346,12 +351,17 @@ def main():
         val_prec1 = val_prec_lst[-1]
 
         if not args.no_log:
-            wandb.log({"Val Loss": val_loss}, step=epoch)
-            wandb.log({"Val Prec@1": val_prec1}, step=epoch)
+            if args.layerwise_train:
+                step = curr_module * training_configurations[args.model]['epochs'] + epoch
+            else:
+                step = epoch
+
+            wandb.log({"Val Loss": val_loss}, step=step)
+            wandb.log({"Val Prec@1": val_prec1}, step=step)
             for idx, loss in enumerate(val_loss_lst):
-                wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
+                wandb.log({f"Val Loss_{idx}": loss}, step=step)
             for idx, prec in enumerate(val_prec_lst):
-                wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
+                wandb.log({f"Val Prec@1_{idx}": prec}, step=step)
 
         # remember best prec@1 and save checkpoint
         is_best = val_prec1 > best_prec1
