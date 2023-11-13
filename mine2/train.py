@@ -405,6 +405,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             loss.backward()
         elif args.layerwise_train:
             per_exit_loss = loss
+            loss = loss[curr_module]
         else:
             loss = loss[-1]
             
