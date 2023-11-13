@@ -116,8 +116,12 @@ parser.add_argument('--lr_decay', default=.1, type=float,
                     help='learning rate decay factor')
 parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='weight decay factor')
-parser.add_argument('--classification_loss', action='store_true',
-                    help='do not log to wandb if this is set true')
+parser.add_argument('--classification_loss_train', action='store_true',
+                    help='use the clasclassification loss to train')
+parser.add_argument('--infopro_loss_train', action='store_true',
+                    help='use the infopro loss to train')
+parser.add_argument('--infopro_loss_train', action='store_true',
+                    help='use the infopro loss to train')
 
 args = parser.parse_args()
 
@@ -602,6 +606,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
     print(p.shape)
     print(torch.tensor([p>.7]).shape)
+    print((p[p>.7].sum(dim=1,keepdim=True)).shape)
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
