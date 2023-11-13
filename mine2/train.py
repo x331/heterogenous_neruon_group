@@ -611,14 +611,12 @@ def accuracy_all_exits(output, target, topk=(1,)):
     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
     for m in range(p.shape[0]):
         exits[m] = e[m].sum()
-    print(exits)
     for m in range(p.shape[0]):
         if exits[m] != 0:
             exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
             sum = exit_preds.float().sum()
             avg =  sum/exit_preds.shape[0]*100.0
             exits_acc[m] = avg
-    print(exits_acc)
     
 
 
