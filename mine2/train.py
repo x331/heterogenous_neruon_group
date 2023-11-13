@@ -602,11 +602,11 @@ def accuracy_all_exits(output, target, topk=(1,)):
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
 
+    threshold = .0009
     prob = torch.softmax(output,dim=2)
     p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
     p = p+1
-    print(torch.max(p),torch.min(p))
-    e = p>0.03
+    e = p>threshold
     exits = torch.zeros(p.shape[0],1,device='cpu')
     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
     for m in range(p.shape[0]):
