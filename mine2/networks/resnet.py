@@ -239,7 +239,6 @@ class InfoProResNet(nn.Module):
                             preds = 0
                             loss = 0
                             if not self.classification_loss_train:
-                                print(1)
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
@@ -247,23 +246,16 @@ class InfoProResNet(nn.Module):
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                 loss.backward()
-                                print('hi')
                             if not self.infopro_loss_train:
-                                print(2)
                                 classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                             if self.classification_loss_train:
-                                print(3)
                                 loss = classloss
-                                classloss.backward()
                             elif self.infopro_loss_train:
-                                print(4)
                                 loss = infoproloss
-                                infoproloss.backward()
                             elif self.infopro_classification_loss_train:
-                                print(5)
                                 loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
-                                loss.backward()
-                                    
+                                
+                            loss.backward()        
                             loss_per_exit.append(loss)
                             pred_per_exit.append(preds)
                             x = x.detach()
