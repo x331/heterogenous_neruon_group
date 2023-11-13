@@ -396,9 +396,6 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                              ixy_2=args.ixy_2,
                              target_module=curr_module)
         
-        print("output shape: ", output[0].shape)
-        print("loss length: ", len(loss))
-        
         if args.joint_train:
             per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
@@ -469,7 +466,7 @@ def validate(val_loader, model, epoch):
                                  target=target_var,
                                  no_early_exit_pred = args.no_early_exit_pred)
             
-        if args.joint_train:
+        if args.joint_train or args.layerwise_train:
             per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
         else:
