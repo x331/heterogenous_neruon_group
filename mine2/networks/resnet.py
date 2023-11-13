@@ -247,6 +247,8 @@ class InfoProResNet(nn.Module):
                                 
                                 loss_ixy.backward()
                                 return pred_per_exit, loss_per_exit
+                            else:
+                                x = x.detach()
                     
                         pred_per_exit.append(preds)
                     local_module_i += 1                    
@@ -285,6 +287,8 @@ class InfoProResNet(nn.Module):
                                         
                                         loss_ixy.backward()
                                         return pred_per_exit, loss_per_exit
+                                    else:
+                                        x = x.detach()
                                         
                             
                                 pred_per_exit.append(preds)
