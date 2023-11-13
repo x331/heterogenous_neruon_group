@@ -344,12 +344,15 @@ def main():
         
         if not args.no_wandb_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
-            wandb.log({"Prec@1": train_prec1}, step=epoch)
+            wandb.log({"Train Prec@1": train_prec1}, step=epoch)
             for idx, loss in enumerate(train_loss_lst):
                 wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(train_prec_lst):
-                wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
-
+                wandb.log({f"Train Prec@1_{idx}": prec}, step=epoch)
+            for idx, val in enumerate(train_exits_num):
+                wandb.log({f"Train Number of Exits at_{idx}": val}, step=epoch)
+            for idx, val in enumerate(train_exits_acc):
+                wandb.log({f"Train Prec@1 when exit at_{idx}": val}, step=epoch)
 
         # evaluate on validation set
         val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
@@ -362,6 +365,10 @@ def main():
                 wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(val_prec_lst):
                 wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
+            for idx, val in enumerate(val_exits_num):
+                wandb.log({f"Val Number of Exits at_{idx}": val}, step=epoch)
+            for idx, val in enumerate(val_exits_acc):
+                wandb.log({f"Val Prec@1 when exit at_{idx}": val}, step=epoch)
 
         # remember best prec@1 and save checkpoint
         is_best = val_prec1 > best_prec1
