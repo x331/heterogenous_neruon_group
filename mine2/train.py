@@ -158,7 +158,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def main():
     if not args.no_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
-        wandb_api_key = os.environ.get('WANDB_API_KEY')
+        wandb_api_key = os.environ.get('')
         if wandb_api_key is None:
             raise ValueError("Please set the WANDB_API_KEY environment variable.")
         
