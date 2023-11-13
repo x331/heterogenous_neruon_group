@@ -283,6 +283,7 @@ def main():
     modules = [module for module in model.modules()]
     print("Model modules:", modules)
     print("Module 1:", modules[0])
+    print("--- END ---")
 
 
     model = torch.nn.DataParallel(model).to(device)
