@@ -631,7 +631,6 @@ def adjust_learning_rate(optimizer, epoch):
         print('lr:')
         for param_group in optimizer.param_groups:
             print(param_group['lr'])
-            print('what')
 
 
 def accuracy(output, target, topk=(1,)):

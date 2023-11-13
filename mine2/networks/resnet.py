@@ -243,7 +243,7 @@ class InfoProResNet(nn.Module):
                         loss_per_exit.append(loss_ixy)
                         pred_per_exit.append(preds)
                     else:
-                        loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                        loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
                         
                         if self.layerwise_train:
@@ -284,7 +284,7 @@ class InfoProResNet(nn.Module):
                                 loss_per_exit.append(loss_ixy)
                                 pred_per_exit.append(preds)
                             else:
-                                loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
                                 
                                 if self.layerwise_train:
