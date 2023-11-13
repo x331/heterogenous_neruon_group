@@ -430,7 +430,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), x.size(0)) 
             
-        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),args.confidence_threshold)
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold)
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
             meter.update(exit_num[idx].item(), x.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
@@ -460,7 +460,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             fd.close()
 
         # ave_top1 = [meter.ave for meter in top1]
-        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1]
+        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 def validate(val_loader, model, epoch):
@@ -531,7 +531,7 @@ def validate(val_loader, model, epoch):
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
-    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1]
+    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 
