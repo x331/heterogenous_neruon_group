@@ -255,7 +255,8 @@ class InfoProResNet(nn.Module):
                             elif self.infopro_classification_loss_train:
                                 loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
                                 
-                            loss.backward()        
+                            if self.training :    
+                                loss.backward()        
                             loss_per_exit.append(loss)
                             pred_per_exit.append(preds)
                             x = x.detach()
@@ -311,8 +312,8 @@ class InfoProResNet(nn.Module):
                                         loss = infoproloss
                                     elif self.infopro_classification_loss_train:
                                         loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
-                                        
-                                    loss.backward()        
+                                    if self.training : 
+                                        loss.backward()        
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
                                     x = x.detach()
