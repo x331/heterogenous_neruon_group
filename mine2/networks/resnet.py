@@ -246,6 +246,7 @@ class InfoProResNet(nn.Module):
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                 loss.backwards()
+                                print('hi')
                                 infoproloss = loss
                             if not self.infopro_loss_train:
                                 loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
