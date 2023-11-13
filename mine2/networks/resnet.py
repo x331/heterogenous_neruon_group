@@ -288,6 +288,8 @@ class InfoProResNet(nn.Module):
                                         loss_ixy.backward()
                                         return pred_per_exit, loss_per_exit
                                     else:
+                                        for param in self.parameters():
+                                            print("----Param: ", param)
                                         # detach the current module from computation graph, only need to keep the target module
                                         x = x.detach()
                             
