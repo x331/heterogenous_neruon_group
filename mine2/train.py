@@ -584,7 +584,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print((prob*torch.log(prob)).shape)
     print((1/(np.log(output.shape[2]))))
     print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
-    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=true)
+    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=TabErrorrue)
     print(p.shape)
     print([p>.7].shape)
     
