@@ -159,8 +159,6 @@ def main():
     if not args.no_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
         wandb_api_key = os.environ.get('')
-        if wandb_api_key is None:
-            raise ValueError("Please set the WANDB_API_KEY environment variable.")
         
         wandb.login(key=wandb_api_key)
         wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
