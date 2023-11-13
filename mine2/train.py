@@ -603,10 +603,11 @@ def accuracy_all_exits(output, target, topk=(1,)):
     p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
     p = p+1
     print(torch.max(p),torch.min(p))
-    e = p>.3
+    e = p>.1
     exits = torch.zeros(p.shape[0],1,device='cpu')
     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
     for m in range(p.shape[0]):
+        print(e[m])
         exits[m] = e[m].sum()
     print(exits)
     for m in range(p.shape[0]):
