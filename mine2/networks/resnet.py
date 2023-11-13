@@ -142,7 +142,7 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            if infopro_loss_train:
+            if self.infopro_loss_train or self.infopro_classification_loss_train:
                 exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
                     '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
                 exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
