@@ -124,6 +124,8 @@ parser.add_argument('--infopro_classification_loss_train', action='store_true',
                     help='use the infopro and classification loss to train')
 parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
                     help='given value v times infopro plus (1-v) times classifcation is now the loss')
+parser.add_argument('--confidence_threshold', default=.7, type=float,
+                    help='what entropy based confidence level is needed to early exit')
 
 args = parser.parse_args()
 
@@ -383,8 +385,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
-    per_exit_exits_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
-    per_exit_exit_acc_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
 
 
 
@@ -426,7 +428,13 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), x.size(0))  
         for idx, meter in enumerate(per_exit_loss_meter):
-            meter.update(per_exit_loss[idx].item(), x.size(0))  
+            meter.update(per_exit_loss[idx].item(), x.size(0)) 
+            
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),args.confidence_threshold)
+        for idx, meter in enumerate(per_exit_number_of_exits_meter):
+            meter.update(exit_num[idx].item(), x.size(0))  
+        for idx, meter in enumerate(per_exit_acc_when_exit_meter):
+            meter.update(exit_acc[idx].item(), exit_num[idx].item())
             
 
         batch_time.update(time.time() - end)
@@ -447,6 +455,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             fd.write(string + '\n')
             fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
             fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+            fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+            fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
             fd.close()
 
         # ave_top1 = [meter.ave for meter in top1]
@@ -459,6 +469,8 @@ def validate(val_loader, model, epoch):
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
     
     train_batches_num = len(val_loader)
 
@@ -491,6 +503,12 @@ def validate(val_loader, model, epoch):
             meter.update(prec1[idx].item(), input.size(0)) 
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), input.size(0)) 
+            
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),args.confidence_threshold)
+        for idx, meter in enumerate(per_exit_number_of_exits_meter):
+            meter.update(exit_num[idx].item(), x.size(0))  
+        for idx, meter in enumerate(per_exit_acc_when_exit_meter):
+            meter.update(exit_acc[idx].item(), exit_num[idx].item())
                                           
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -507,6 +525,8 @@ def validate(val_loader, model, epoch):
     fd.write(string + '\n')
     fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
     fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+    fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+    fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
     fd.close()
     val_acc.append(top1[-1].ave)
 
@@ -602,21 +622,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     correct = pred.eq(target.view(1, -1).expand_as(pred))
     
 
-    threshold = .0009
-    prob = torch.softmax(output,dim=2)
-    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
-    p = p+1
-    e = p>threshold
-    exits = torch.zeros(p.shape[0],1,device='cpu')
-    exits_acc = torch.zeros(p.shape[0],1,device='cpu')
-    for m in range(p.shape[0]):
-        exits[m] = e[m].sum()
-    for m in range(p.shape[0]):
-        if exits[m] != 0:
-            exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
-            sum = exit_preds.float().sum()
-            avg =  sum/exit_preds.shape[0]*100.0
-            exits_acc[m] = avg
+
     
 
 
@@ -642,13 +648,23 @@ def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
+    prob = torch.softmax(output,dim=2)
+    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
+    p = p+1
+    e = p>threshold
+    exits = torch.zeros(p.shape[0],1,device='cpu')
+    exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+    for m in range(p.shape[0]):
+        exits[m] = e[m].sum()
+    for m in range(p.shape[0]):
+        if exits[m] != 0:
+            exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+            sum = exit_preds.float().sum()
+            avg =  sum/exit_preds.shape[0]*100.0
+            exits_acc[m] = avg
 
-    res = []
-    for k in topk:
-        # correct_k = correct[:k].view(-1).float().sum(0)
-        correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(1)
-        res.append(correct_k.mul_(100.0 / batch_size))
-    return res
+    return exits, exits_acc
 
 if __name__ == '__main__':
     main()
