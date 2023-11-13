@@ -219,6 +219,11 @@ class InfoProResNet(nn.Module):
                 target_module=None):
 
         if self.training or not no_early_exit_pred:
+            for child in model_ft.children():
+                for param in child.parameters():
+                    param.requires_grad = False
+
+            
             stage_i = 0
             layer_i = 0
             local_module_i = 0
