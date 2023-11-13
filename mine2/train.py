@@ -616,7 +616,9 @@ def accuracy_all_exits(output, target, topk=(1,)):
         if exits[0] != 0:
             sum = correct[m,:1][e[m].reshape(1,e.shape[1])].float().sum()
             print(sum)
-            avg =  sum.mul_(100.0 / batch_size.float())
+            print(batch_size)
+            print(e[m].shape[0])
+            avg =  sum.mul_(100.0 / e[m].shape[0])
             print(avg)
             exits_acc[m] = avg
     print(exits_acc)
