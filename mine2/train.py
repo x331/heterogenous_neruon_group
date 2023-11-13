@@ -5,7 +5,7 @@ import time
 import errno
 import math
 import numpy as np
-# import wandb
+import wandb
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -159,7 +159,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def main():
     
     if not args.no_wandb_log:
-        import wandb
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
         wandb_api_key = os.environ.get('')
         
@@ -167,6 +166,9 @@ def main():
         wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
         config = wandb.config
         config.args = args
+    else:
+        wandb.init(mode='disabled')
+
 
     global best_prec1
     best_prec1 = 0
