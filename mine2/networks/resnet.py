@@ -250,7 +250,7 @@ class InfoProResNet(nn.Module):
                                 print('hi')
                             if not self.infopro_loss_train:
                                 print(2)
-                                loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                             if self.classification_loss_train:
                                 print(3)
                                 loss = classloss
@@ -315,7 +315,7 @@ class InfoProResNet(nn.Module):
                                         print('hi')
                                     if not self.infopro_loss_train:
                                         print(2)
-                                        loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                        classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                     if self.classification_loss_train:
                                         print(3)
                                         loss = classloss
