@@ -100,7 +100,8 @@ class InfoProResNet(nn.Module):
                  wide_list=(16, 16, 32, 64), dropout_rate=0,
                  aux_net_config='1c2f', local_loss_mode='contrast',
                  aux_net_widen=1, aux_net_feature_dim=128,
-                 joint_train=False,layerwise_train=False, locally_train=False):
+                 joint_train=False,layerwise_train=False, locally_train=False,
+                 infopro_loss_train=False,  classification_loss_train=False, infopro_classification_ratio=False):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -135,14 +136,18 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            if not self.joint_train:
+            if infopro_loss_train:
                 exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
                     '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
-
-            exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
-                '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                'loss_mode=local_loss_mode, class_num=class_num, '
-                'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+                exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
+                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                    'loss_mode=local_loss_mode, class_num=class_num, '
+                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            if self.classification_loss_train:
+                exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
+                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                    'loss_mode=local_loss_mode, class_num=class_num, '
+                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
 
         
         for m in self.modules():

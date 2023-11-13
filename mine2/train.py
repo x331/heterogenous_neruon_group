@@ -127,6 +127,7 @@ parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
 parser.add_argument('--confidence_threshold', default=.7, type=float,
                     help='what entropy based confidence level is needed to early exit')
 
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
