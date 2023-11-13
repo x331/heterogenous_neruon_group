@@ -364,6 +364,10 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_exits_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_exit_acc_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+
+
 
 
     train_batches_num = len(train_loader)
@@ -403,7 +407,10 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), x.size(0))  
         for idx, meter in enumerate(per_exit_loss_meter):
-            meter.update(per_exit_loss[idx].item(), x.size(0))            
+            meter.update(per_exit_loss[idx].item(), x.size(0))  
+        for likelihood in  output:
+            torch.softmax(likelihood)
+            
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -573,6 +580,29 @@ def accuracy_all_exits(output, target, topk=(1,)):
     output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 2, True, True)
+    
+    print(torch.softmax(output)*torch.log(torch.softmax(output)))
+
+    
+    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+
+    res = []
+    for k in topk:
+        # correct_k = correct[:k].view(-1).float().sum(0)
+        correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(1)
+        res.append(correct_k.mul_(100.0 / batch_size))
+    return res
+
+def accuracy_all_exits_exit_accurac(output, target, topk=(1,)):
+    """Computes the precision@k for the specified values of k"""
+    maxk = max(topk)
+    batch_size = target.size(0)
+    output = torch.stack(output).detach()
+
+    _, pred = output.topk(maxk, 2, True, True)
+    
+    print(torch.softmax(output)*torch.log(torch.softmax(output)))
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
