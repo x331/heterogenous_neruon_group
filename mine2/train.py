@@ -302,22 +302,13 @@ def main():
 
     if args.layerwise_train:
         modules = [module for module in model.modules()]
-        curr_module = 0
-        optimizer = torch.optim.SGD(modules[0].parameters(),
-                                lr=training_configurations[args.model]['initial_learning_rate'],
-                                momentum=training_configurations[args.model]['momentum'],
-                                nesterov=training_configurations[args.model]['nesterov'],
-                                weight_decay=training_configurations[args.model]['weight_decay'])
+        curr_module = -1
+        epochs_per_module = training_configurations[args.model]['epochs'] // len(modules)
     
-    
-    epoch = start_epoch
-    while epoch < training_configurations[args.model]['epochs']:
-        if args.layerwise_train and epoch == training_configurations[args.model]['epochs'] - 1:
+    for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
+        if args.layerwise_train and epoch % epochs_per_module == 0:
             # set optimizer to only update current module parameters, and reset epoch number
-            epoch = 0
             curr_module += 1
-            if curr_module >= len(modules):
-                break
             optimizer = torch.optim.SGD(modules[curr_module].parameters(),
                                 lr=training_configurations[args.model]['initial_learning_rate'],
                                 momentum=training_configurations[args.model]['momentum'],
@@ -334,17 +325,13 @@ def main():
         
         train_prec1 = train_prec_lst[-1]
         if not args.no_log:
-            if args.layerwise_train:
-                step = curr_module * training_configurations[args.model]['epochs'] + epoch
-            else:
-                step = epoch
             
-            wandb.log({"Train Loss": train_loss}, step=step)
-            wandb.log({"Prec@1": train_prec1}, step=step)
+            wandb.log({"Train Loss": train_loss}, step=epoch)
+            wandb.log({"Prec@1": train_prec1}, step=epoch)
             for idx, loss in enumerate(train_loss_lst):
-                wandb.log({f"Train Loss_{idx}": loss}, step=step)
+                wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(train_prec_lst):
-                wandb.log({f"Prec@1_{idx}": prec}, step=step)
+                wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
 
 
         # evaluate on validation set
@@ -357,12 +344,12 @@ def main():
             else:
                 step = epoch
 
-            wandb.log({"Val Loss": val_loss}, step=step)
-            wandb.log({"Val Prec@1": val_prec1}, step=step)
+            wandb.log({"Val Loss": val_loss}, step=epoch)
+            wandb.log({"Val Prec@1": val_prec1}, step=epoch)
             for idx, loss in enumerate(val_loss_lst):
-                wandb.log({f"Val Loss_{idx}": loss}, step=step)
+                wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(val_prec_lst):
-                wandb.log({f"Val Prec@1_{idx}": prec}, step=step)
+                wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
 
         # remember best prec@1 and save checkpoint
         is_best = val_prec1 > best_prec1
@@ -378,7 +365,6 @@ def main():
         # }, is_best, checkpoint=check_point)
         print('Best accuracy: ', best_prec1)
         np.savetxt(accuracy_file, np.array(val_acc))
-        epoch += 1
 
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
