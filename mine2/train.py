@@ -140,7 +140,8 @@ training_configurations = {
         # 'lr_decay_rate': args.lr_decay,
         'momentum': 0.9,
         'nesterov': True,
-        'weight_decay': args.weight_decay,
+        # 'weight_decay': args.weight_decay,
+        'weight_decay': 1e-4,
     }
 }
 
