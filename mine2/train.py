@@ -301,22 +301,16 @@ def main():
         wandb.watch(model)
 
     if args.layerwise_train:
-        modules = [module for module in model.modules()]
         curr_module = -1
-        print("Module length:", len(modules))
-        epochs_per_module = training_configurations[args.model]['epochs'] // len(modules)
+        epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
     
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
-        if args.layerwise_train and epoch % epochs_per_module == 0:
-            # set optimizer to only update current module parameters, and reset epoch number
-            curr_module += 1
-            optimizer = torch.optim.SGD(modules[curr_module].parameters(),
-                                lr=training_configurations[args.model]['initial_learning_rate'],
-                                momentum=training_configurations[args.model]['momentum'],
-                                nesterov=training_configurations[args.model]['nesterov'],
-                                weight_decay=training_configurations[args.model]['weight_decay'])
-        
-        adjust_learning_rate(optimizer, epoch + 1)
+        if args.layerwise_train:  
+            adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
+            if epoch % epochs_per_module == 0:
+                curr_module += 1
+        else:
+            adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
         if args.layerwise_train:
