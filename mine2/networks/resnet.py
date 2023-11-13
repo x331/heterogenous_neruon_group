@@ -118,7 +118,7 @@ class InfoProResNet(nn.Module):
         self.locally_train = locally_train
         self.infopro_loss_train = infopro_loss_train
         self.classification_loss_train = classification_loss_train
-        self.infopro_classification_ratio = infopro_classification_loss_train
+        self.infopro_classification_loss_train = infopro_classification_loss_train
         self.infopro_classification_ratio = infopro_classification_ratio
         
 
