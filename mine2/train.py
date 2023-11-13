@@ -136,7 +136,7 @@ training_configurations = {
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         # 'initial_learning_rate': args.lr,
         'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
-        'changing_lr': [80, 120],
+        'changing_lr': [args.train_total_epochs//2, args.train_total_epochs//4*3],
         'lr_decay_rate': .1,
         # 'lr_decay_rate': args.lr_decay,
         'momentum': 0.9,
