@@ -110,7 +110,7 @@ parser.add_argument('--small_datasets', dest='small_datasets', action='store_tru
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
 parser.add_argument('--no-log', dest='no_log', action='store_true',
                     help='do not log if this is set true')
-parser.set_defaults('--no_wandb_log', action='store_true',
+parser.add_argument('--no_wandb_log', action='store_true',
                     help='do not log to wandb if this is set true')
 
 args = parser.parse_args()
