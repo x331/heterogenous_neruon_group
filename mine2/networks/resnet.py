@@ -350,7 +350,8 @@ class InfoProResNet(nn.Module):
             loss_per_exit.append(fc_loss)
             if not self.joint_train and not self.layerwise_train and self.locally_train:
                 loss = fc_loss
-                loss.backward()            
+                if self.training:
+                    loss.backward()            
             return pred_per_exit, loss_per_exit
 
         else:
