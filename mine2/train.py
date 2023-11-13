@@ -605,7 +605,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
     # print((prob*torch.log(prob)).shape)
     # print((1/(np.log(output.shape[2]))))
     # print((prob*torch.log(prob)).sum(dim=2,keepdim=True).shape)
-    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)*1-1
+    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2))*1-1
     e = p>.00000000000001
     print(torch.max(p))
     print(torch.min(p))
@@ -631,7 +631,7 @@ def accuracy_all_exits(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_all_exits_exit_accuracy(output, target, topk=(1,)):
+def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
