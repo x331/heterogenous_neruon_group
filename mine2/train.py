@@ -146,7 +146,7 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_joint_train_' + str(args.joint_train) \
               + '_layerwise_train_' + str(args.layerwise_train) \
               + '_locally_train_' + str(args.locally_train) \
-              + '_ixy_2_' + str(args.ixy_2) \
+              + '_train_total_epochs_' + str(args.train_total_epochs) \
               + ('_cos_lr_' if args.cos_lr else '') 
 record_path = './logs/' + exp_name
 
