@@ -280,12 +280,6 @@ def main():
                                 nesterov=training_configurations[args.model]['nesterov'],
                                 weight_decay=training_configurations[args.model]['weight_decay'])
 
-    modules = [module for module in model.modules()]
-    print("Model modules:", modules)
-    print("Module 1:", modules[0])
-    print("--- END ---")
-
-
     model = torch.nn.DataParallel(model).to(device)
 
     if args.resume:
@@ -306,12 +300,33 @@ def main():
     if not args.no_log:
         wandb.watch(model)
 
+    if args.train_layerwise:
+        modules = [module for module in model.modules()]
+        curr_module = 0
+        optimizer = torch.optim.SGD(modules[0].parameters(),
+                                lr=training_configurations[args.model]['initial_learning_rate'],
+                                momentum=training_configurations[args.model]['momentum'],
+                                nesterov=training_configurations[args.model]['nesterov'],
+                                weight_decay=training_configurations[args.model]['weight_decay'])
+    
+    
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
-
+        if args.train_layerwise and epoch == training_configurations[args.model]['epochs'] - 1:
+            # set optimizer to only update current module parameters, and reset epoch number
+            epoch = 0
+            curr_module += 1
+            if curr_module >= len(modules):
+                break
+            optimizer = torch.optim.SGD(modules[curr_module].parameters(),
+                                lr=training_configurations[args.model]['initial_learning_rate'],
+                                momentum=training_configurations[args.model]['momentum'],
+                                nesterov=training_configurations[args.model]['nesterov'],
+                                weight_decay=training_configurations[args.model]['weight_decay'])
+        
         adjust_learning_rate(optimizer, epoch + 1)
 
         # train for one epoch
-        train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
+        train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch, curr_module)
         train_prec1 = train_prec_lst[-1]
         if not args.no_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
@@ -350,7 +365,7 @@ def main():
         np.savetxt(accuracy_file, np.array(val_acc))
 
 
-def train(train_loader, model, optimizer, epoch):
+def train(train_loader, model, optimizer, epoch, curr_module):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -374,7 +389,8 @@ def train(train_loader, model, optimizer, epoch):
                              ixx_1=args.ixx_1,
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
-                             ixy_2=args.ixy_2)
+                             ixy_2=args.ixy_2,
+                             target_module=curr_module)
         if args.joint_train:
             per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
