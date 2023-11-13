@@ -334,10 +334,6 @@ def main():
         val_prec1 = val_prec_lst[-1]
 
         if not args.no_log:
-            if args.layerwise_train:
-                step = curr_module * training_configurations[args.model]['epochs'] + epoch
-            else:
-                step = epoch
 
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
