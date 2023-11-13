@@ -621,6 +621,8 @@ def adjust_learning_rate(optimizer, epoch):
             if epoch <= 10:
                 param_group['lr'] = 0.5 * training_configurations[args.model]['initial_learning_rate']\
                                 * (1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs'])) * (epoch - 1) / 10 + 0.01 * (11 - epoch) / 10
+                print( training_configurations[args.model]['epochs'])
+                print(0.5 * training_configurations[args.model]['initial_learning_rate'],(1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs'])) * (epoch - 1) / 10, 0.01 * (11 - epoch) / 10)
             else:
                 param_group['lr'] = 0.5 * training_configurations[args.model]['initial_learning_rate']\
                                     * (1 + math.cos(math.pi * epoch / training_configurations[args.model]['epochs']))
