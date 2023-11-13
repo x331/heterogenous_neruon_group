@@ -194,7 +194,6 @@ def main():
     val_acc = []
 
     class_num = args.dataset in ['cifar10', 'sl10', 'svhn'] and 10 or 100
-    print(args.dataset)
 
     if 'cifar' in args.dataset:
         normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
@@ -616,6 +615,8 @@ def accuracy_all_exits(output, target, topk=(1,)):
     print(exits)
     for m in range(p.shape[0]):
         if exits[0] != 0:
+            print(correct[m,:1])
+            print(e[m].reshape(1,e.shape[1]))
             print(correct[m,:1][e[m].reshape(1,e.shape[1])])
             correct[:,:1][e[m]].reshape(correct.shape[0],-1).float().sum(1)
             sum = print(correct)
