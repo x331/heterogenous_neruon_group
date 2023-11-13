@@ -395,6 +395,9 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                              ixx_2=args.ixx_2,
                              ixy_2=args.ixy_2,
                              target_module=curr_module)
+        print("output: ", output)
+        print("loss: ", loss)
+        
         if args.joint_train:
             per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
