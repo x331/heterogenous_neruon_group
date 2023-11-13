@@ -108,8 +108,6 @@ parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='s
                     help='True to give just the prediction at the end of the network no early exits')
 parser.add_argument('--small_datasets', dest='small_datasets', action='store_true',
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
-parser.add_argument('--no-log', dest='no_log', action='store_true',
-                    help='do not log if this is set true')
 parser.add_argument('--no_wandb_log', action='store_true',
                     help='do not log to wandb if this is set true')
 
@@ -144,8 +142,12 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_ixy_1_' + str(args.ixy_1) \
               + '_ixx_2_' + str(args.ixx_2) \
               + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '')
-
+              + ('_cos_lr_' if args.cos_lr else '') \
+              + '_joint_train_' + str(args.joint_train) \
+              + '_layerwise_train_' + str(args.layerwise_train) \
+              + '_locally_train_' + str(args.locally_train) \
+              + '_ixy_2_' + str(args.ixy_2) \
+              + ('_cos_lr_' if args.cos_lr else '') 
 record_path = './logs/' + exp_name
 
 record_file = record_path + '/training_process.txt'
@@ -157,6 +159,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
+    print(args.no_wandb_log)
     
     if not args.no_wandb_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
@@ -166,8 +169,6 @@ def main():
         wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
         config = wandb.config
         config.args = args
-    else:
-        wandb.init(mode='disabled')
 
 
     global best_prec1
