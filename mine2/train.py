@@ -185,6 +185,7 @@ def main():
     val_acc = []
 
     class_num = args.dataset in ['cifar10', 'sl10', 'svhn'] and 10 or 100
+    print(args.dataset)
 
     if 'cifar' in args.dataset:
         normalize = transforms.Normalize(mean=[x / 255.0 for x in [125.3, 123.0, 113.9]],
