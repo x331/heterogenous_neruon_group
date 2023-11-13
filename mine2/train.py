@@ -568,7 +568,7 @@ class AverageMeter(object):
         self.value = val
         self.sum += val * n
         self.count += n
-        self.ave = self.sum / self.count
+        self.ave = self.sum / self.count if self.count >0 else 0
 
 
 def adjust_learning_rate(optimizer, epoch):
