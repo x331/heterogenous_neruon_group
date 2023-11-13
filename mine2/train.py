@@ -303,6 +303,7 @@ def main():
     if args.layerwise_train:
         modules = [module for module in model.modules()]
         curr_module = -1
+        print("Module length:", len(modules))
         epochs_per_module = training_configurations[args.model]['epochs'] // len(modules)
     
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
