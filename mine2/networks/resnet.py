@@ -305,22 +305,31 @@ class InfoProResNet(nn.Module):
                                     preds = 0
                                     loss = 0
                                     if not self.classification_loss_train:
+                                        print(1)
                                         ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                         ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                         ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                         loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                         loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                        loss.backward()
+                                        print('hi')
                                         infoproloss = loss
                                     if not self.infopro_loss_train:
+                                        print(2)
                                         loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                        print('hi')
+                                        loss_clas.backward()
                                     if self.classification_loss_train:
+                                        print(3)
                                         loss = classloss
                                     elif self.infopro_loss_train:
+                                        print(4)
                                         loss = infoproloss
                                     elif self.infopro_classification_loss_train:
+                                        print(5)
                                         loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
-                                         
+                                            
                                     loss.backward()
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
