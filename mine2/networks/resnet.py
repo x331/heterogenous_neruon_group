@@ -245,26 +245,25 @@ class InfoProResNet(nn.Module):
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                 loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                 loss.backward()
                                 print('hi')
-                                infoproloss = loss
                             if not self.infopro_loss_train:
                                 print(2)
                                 loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                print('hi')
-                                loss_clas.backward()
                             if self.classification_loss_train:
                                 print(3)
                                 loss = classloss
+                                classloss.backward()
                             elif self.infopro_loss_train:
                                 print(4)
                                 loss = infoproloss
+                                infoproloss.backward()
                             elif self.infopro_classification_loss_train:
                                 print(5)
                                 loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
+                                loss.backward()
                                     
-                            loss.backward()
                             loss_per_exit.append(loss)
                             pred_per_exit.append(preds)
                             x = x.detach()
@@ -311,26 +310,25 @@ class InfoProResNet(nn.Module):
                                         ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                         loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                        infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                         loss.backward()
                                         print('hi')
-                                        infoproloss = loss
                                     if not self.infopro_loss_train:
                                         print(2)
                                         loss_clas, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                        print('hi')
-                                        loss_clas.backward()
                                     if self.classification_loss_train:
                                         print(3)
                                         loss = classloss
+                                        classloss.backward()
                                     elif self.infopro_loss_train:
                                         print(4)
                                         loss = infoproloss
+                                        infoproloss.backward()
                                     elif self.infopro_classification_loss_train:
                                         print(5)
                                         loss =  infoproloss*(self.infopro_classification_ratio)+classloss(1-self.infopro_classification_ratio)
+                                        loss.backward()
                                             
-                                    loss.backward()
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
                                     x = x.detach()
