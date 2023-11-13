@@ -115,6 +115,11 @@ class InfoProResNet(nn.Module):
         self.layers = layers
         self.joint_train = joint_train
         self.layerwise_train = layerwise_train
+        self.locally_train = locally_train
+        self.infopro_loss_train = infopro_loss_train
+        self.classification_loss_train = classification_loss_train
+        self.infopro_classification_ratio = infopro_classification_ratio
+        
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)

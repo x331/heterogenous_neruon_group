@@ -314,7 +314,10 @@ def main():
              aux_net_feature_dim=args.aux_net_feature_dim, 
              joint_train = args.joint_train,
              layerwise_train = args.layerwise_train,
-             locally_train = args.locally_train)
+             locally_train = args.locally_train,
+            infopro_loss_train=args.infopro_loss_train,  
+            classification_loss_train=args.classification_loss_train,
+            infopro_classification_ratio= args.infopro_classification_ratio)
     else:
         raise NotImplementedError
     
