@@ -110,6 +110,12 @@ parser.add_argument('--small_datasets', dest='small_datasets', action='store_tru
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
 parser.add_argument('--no_wandb_log', action='store_true',
                     help='do not log to wandb if this is set true')
+parser.add_argument('--lr',  default=0.8, type=float,
+                    help='inital learning rate')
+parser.add_argument('--lr_decay', default=.1, type=float,
+                    help='learning rate decay factor')
+parser.add_argument('--weight_decay', default=1e-4, type=float,
+                    help='weight decay factor')
 
 args = parser.parse_args()
 
@@ -118,12 +124,14 @@ training_configurations = {
     'resnet': {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
-        'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
+        'initial_learning_rate': args.lr,
+
+        # 'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
         'changing_lr': [80, 120],
-        'lr_decay_rate': 0.1,
+        'lr_decay_rate': args.lr_decay,
         'momentum': 0.9,
         'nesterov': True,
-        'weight_decay': 1e-4,
+        'weight_decay': args.weight_decay,
     }
 }
 
