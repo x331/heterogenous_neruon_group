@@ -166,7 +166,14 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_joint_train_' + str(args.joint_train) \
               + '_layerwise_train_' + str(args.layerwise_train) \
               + '_locally_train_' + str(args.locally_train) \
-              + '_train_total_epochs_' + str(args.train_total_epochs)
+              + '_train_total_epochs_' + str(args.train_total_epochs)\
+              + '_confidence_threshold_' + str(args.confidence_threshold)\
+              + '_classification_loss_train_' + str(args.classification_loss_train) \
+              + '_infopro_loss_train_' + str(args.infopro_loss_train) \
+              + '_infopro_classification_loss_train_' + str(args.infopro_classification_loss_train)  \
+              + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)      
+                      
+                          
 record_path = './logs/' + exp_name
 
 record_file = record_path + '/training_process.txt'
