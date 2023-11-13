@@ -157,16 +157,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
-    if not args.no_log:
-        # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
-        wandb_api_key = os.environ.get('')
-        
-        wandb.login(key=wandb_api_key)
-        wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
-        config = wandb.config
-        config.args = args
-        if no_wandb_log:
-            wandb.init(mode="disabled")
+    # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
+    wandb_api_key = os.environ.get('')
+    
+    wandb.login(key=wandb_api_key)
+    wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
+    config = wandb.config
+    config.args = args
+    if args.no_wandb_log:
+        wandb.init(mode="disabled")
 
     global best_prec1
     best_prec1 = 0
