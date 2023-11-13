@@ -19,3 +19,7 @@ Before you run your script, make sure to set the environment variable WANDB_API_
 For Linux or macOS:
 ```export WANDB_API_KEY='your_actual_api_key_here'```
 
+# Layerwise Training Stuff
+Enter total epochs, epoch per module will be evenly split up. For example, 50 total epochs means that each module will be ran for 25 epochs.
+Currently have it so that the adjust learning rate thing resets for each module
+Right now getting weird behavior from layerwise training, but might just be because hyperparameters are not calibrated for that kind of training?
