@@ -406,8 +406,6 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             meter.update(prec1[idx].item(), x.size(0))  
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), x.size(0))  
-        for likelihood in  output:
-            torch.softmax(likelihood)
             
 
         batch_time.update(time.time() - end)
@@ -579,8 +577,9 @@ def accuracy_all_exits(output, target, topk=(1,)):
 
     _, pred = output.topk(maxk, 2, True, True)
     
-
+    prob = torch.softmax(output,dim=2)
     print(torch.softmax(output,dim=2).shape)
+    print(prob[0][0])
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
