@@ -230,6 +230,8 @@ class InfoProResNet(nn.Module):
                         loss = ixx_r * loss_ixx + ixy_r * loss_ixy
                         loss.backward()
                         x = x.detach()
+                        loss_per_exit.append(loss_ixy)
+                        pred_per_exit.append(preds)
                     else:
                         loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
@@ -248,7 +250,7 @@ class InfoProResNet(nn.Module):
                                 # detach the current module from computation graph, only need to keep the target module
                                 x = x.detach()
                     
-                    pred_per_exit.append(preds)
+                        pred_per_exit.append(preds)
                     local_module_i += 1                    
                         
             for stage_i in (1, 2, 3):
@@ -269,6 +271,8 @@ class InfoProResNet(nn.Module):
                                 loss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                 loss.backward()
                                 x = x.detach()
+                                loss_per_exit.append(loss_ixy)
+                                pred_per_exit.append(preds)
                             else:
                                 loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
@@ -287,7 +291,7 @@ class InfoProResNet(nn.Module):
                                         # detach the current module from computation graph, only need to keep the target module
                                         x = x.detach()
                             
-                            pred_per_exit.append(preds)
+                                pred_per_exit.append(preds)
                             local_module_i += 1
                             
 
@@ -296,13 +300,11 @@ class InfoProResNet(nn.Module):
             logits = self.fc(x)
             pred_per_exit.append(logits)
             fc_loss = self.criterion_ce(logits, target)
+            loss_per_exit.append(fc_loss)
             if not self.joint_train and not self.layerwise_train:
                 loss = fc_loss
-                loss.backward()
-                return [logits], [loss]
-            else:
-                loss_per_exit.append(fc_loss)
-                return pred_per_exit, loss_per_exit
+                loss.backward()            
+            return pred_per_exit, loss_per_exit
 
         else:
             x = self.conv1(img)
