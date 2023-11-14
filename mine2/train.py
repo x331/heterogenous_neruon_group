@@ -475,7 +475,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             
         exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold)
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
-            meter.update(exit_num[idx].item(), x.size(0))  
+            meter.update(exit_num[idx].item()/x.size(0)*100, x.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
             meter.update(exit_acc[idx].item(), exit_num[idx].item())
             
@@ -549,7 +549,7 @@ def validate(val_loader, model, epoch):
             
         exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=args.confidence_threshold)
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
-            meter.update(exit_num[idx].item()/input.size(0), input.size(0))  
+            meter.update(exit_num[idx].item()/input.size(0)*100, input.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
             meter.update(exit_acc[idx].item(), exit_num[idx].item())
                                           
