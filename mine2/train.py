@@ -213,7 +213,7 @@ def main():
         wandb_api_key = os.environ.get('')
         
         wandb.login(key=wandb_api_key)
-        wandb.init(project='Project-X-Experiments', entity='samonuall', name=exp_name)
+        wandb.init(project='Project-X-Experiments', entity='ghotifish', name=exp_name)
         config = wandb.config
         config.args = args
 
