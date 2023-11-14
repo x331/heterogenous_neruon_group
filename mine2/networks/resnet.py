@@ -100,7 +100,8 @@ class InfoProResNet(nn.Module):
                  wide_list=(16, 16, 32, 64), dropout_rate=0,
                  aux_net_config='1c2f', local_loss_mode='contrast',
                  aux_net_widen=1, aux_net_feature_dim=128,
-                 joint_train=False,layerwise_train=False, locally_train=False):
+                 joint_train=False,layerwise_train=False, locally_train=False,
+                 infopro_loss_train=False,  classification_loss_train=False, infopro_classification_loss_train=False, infopro_classification_ratio=False):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -113,6 +114,13 @@ class InfoProResNet(nn.Module):
         self.local_module_num = local_module_num
         self.layers = layers
         self.joint_train = joint_train
+        self.layerwise_train = layerwise_train
+        self.locally_train = locally_train
+        self.infopro_loss_train = infopro_loss_train
+        self.classification_loss_train = classification_loss_train
+        self.infopro_classification_loss_train = infopro_classification_loss_train
+        self.infopro_classification_ratio = infopro_classification_ratio
+        
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)
@@ -134,14 +142,18 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            if not self.joint_train:
+            if self.infopro_loss_train or self.infopro_classification_loss_train:
                 exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
                     '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
-
-            exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
-                '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                'loss_mode=local_loss_mode, class_num=class_num, '
-                'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+                exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
+                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                    'loss_mode=local_loss_mode, class_num=class_num, '
+                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            if self.classification_loss_train  or self.infopro_classification_loss_train:
+                exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
+                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                    'loss_mode=local_loss_mode, class_num=class_num, '
+                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
 
         
         for m in self.modules():
@@ -203,9 +215,10 @@ class InfoProResNet(nn.Module):
     def forward(self, img, target=None,
                 ixx_1=0, ixy_1=0,
                 ixx_2=0, ixy_2=0,
-                no_early_exit_pred = False):
+                no_early_exit_pred = False,
+                target_module=None):
 
-        if self.training or not no_early_exit_pred:
+        if self.training or not no_early_exit_pred:            
             stage_i = 0
             layer_i = 0
             local_module_i = 0
@@ -219,41 +232,114 @@ class InfoProResNet(nn.Module):
             if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
-                    if not self.joint_train:
-                        ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                        loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                        loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                        loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                        loss.backward()
-                        x = x.detach()
-                    else:
-                        loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                        loss_per_exit.append(loss_ixy)
-                    pred_per_exit.append(preds)
-                    local_module_i += 1                    
-
-            for stage_i in (1, 2, 3):
-                for layer_i in range(self.layers[stage_i - 1]):
-                    x = eval('self.layer' + str(stage_i))[layer_i](x)
-
-                    if local_module_i <= self.local_module_num - 2:
-                        if self.infopro_config[local_module_i][0] == stage_i \
-                                and self.infopro_config[local_module_i][1] == layer_i:
-                            if not self.joint_train:
+                    if not self.joint_train and not self.layerwise_train and self.locally_train:
+                        if self.infopro_loss_train or self.infopro_classification_loss_train or self.classification_loss_train:
+                            infoproloss = 0 
+                            classloss = 0
+                            preds = 0
+                            loss = 0
+                            if not self.classification_loss_train:
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                 loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                loss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                                loss.backward()
-                                x = x.detach()
-                            else:
-                                loss_ixy, preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                loss_per_exit.append(loss_ixy)
+                                infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                            if not self.infopro_loss_train:
+                                classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                            if self.classification_loss_train:
+                                loss = classloss
+                            elif self.infopro_loss_train:
+                                loss = infoproloss
+                            elif self.infopro_classification_loss_train:
+                                loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
+                                
+                            if self.training :    
+                                loss.backward()        
+                            loss_per_exit.append(loss)
                             pred_per_exit.append(preds)
+                            x = x.detach()
+
+                    else:
+                        loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                        loss_per_exit.append(loss_ixy)
+                        
+                        if self.layerwise_train:
+                            # means we reached the classifier of the target module
+                            if target_module == local_module_i:
+                                pred_per_exit.append(preds)
+                                for _ in range(self.local_module_num - 1 - local_module_i):
+                                    loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                    pred_per_exit.append(torch.zeros_like(preds))
+                                    
+                                if self.training:
+                                    loss_ixy.backward()
+                                return pred_per_exit, loss_per_exit
+                            else:
+                                # detach the current module from computation graph, only need to keep the target module
+                                x = x.detach()
+                    
+                        pred_per_exit.append(preds)
+                    local_module_i += 1                    
+                        
+            for stage_i in (1, 2, 3):
+                for layer_i in range(self.layers[stage_i - 1]):
+                            
+                    x = eval('self.layer' + str(stage_i))[layer_i](x)
+                    
+
+                    if local_module_i <= self.local_module_num - 2:
+                        if self.infopro_config[local_module_i][0] == stage_i \
+                                and self.infopro_config[local_module_i][1] == layer_i:
+     
+                            if not self.joint_train and not self.layerwise_train and self.locally_train:
+                                if self.infopro_loss_train or self.infopro_classification_loss_train or self.classification_loss_train:
+                                    infoproloss = 0 
+                                    classloss = 0
+                                    preds = 0
+                                    loss = 0
+                                    if not self.classification_loss_train:
+                                        ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                        loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                                        loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                        infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                    if not self.infopro_loss_train:
+                                        classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                    if self.classification_loss_train:
+                                        loss = classloss
+                                    elif self.infopro_loss_train:
+                                        loss = infoproloss
+                                    elif self.infopro_classification_loss_train:
+                                        loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
+                                    if self.training : 
+                                        loss.backward()        
+                                    loss_per_exit.append(loss)
+                                    pred_per_exit.append(preds)
+                                    x = x.detach()
+                                            
+
+                                
+                            else:
+                                loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                loss_per_exit.append(loss_ixy)
+                                
+                                if self.layerwise_train:
+                                    # means we reached the classifier of the target module
+                                    if target_module == local_module_i:
+                                        pred_per_exit.append(preds)
+                                        for _ in range(self.local_module_num - 1 - local_module_i):
+                                            loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                            pred_per_exit.append(torch.zeros_like(preds))
+                                        if self.training:
+                                            loss_ixy.backward()
+                                        return pred_per_exit, loss_per_exit
+                                    else:
+                                        # detach the current module from computation graph, only need to keep the target module
+                                        x = x.detach()
+                            
+                                pred_per_exit.append(preds)
                             local_module_i += 1
                             
 
@@ -262,13 +348,12 @@ class InfoProResNet(nn.Module):
             logits = self.fc(x)
             pred_per_exit.append(logits)
             fc_loss = self.criterion_ce(logits, target)
-            if not self.joint_train:
+            loss_per_exit.append(fc_loss)
+            if not self.joint_train and not self.layerwise_train and self.locally_train:
                 loss = fc_loss
-                loss.backward()
-                return [logits], [loss]
-            else:
-                loss_per_exit.append(fc_loss)
-                return pred_per_exit, loss_per_exit
+                if self.training:
+                    loss.backward()            
+            return pred_per_exit, loss_per_exit
 
         else:
             x = self.conv1(img)

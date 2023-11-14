@@ -46,7 +46,7 @@ parser.add_argument('--name', default='', type=str,
                     help='name of experiment')
 parser.add_argument('--no', default='1', type=str,
                     help='index of the experiment (for recording convenience)')
-parser.add_argument('--print-freq', '-p', default=10, type=int,
+parser.add_argument('--print-freq', '-p', default=1, type=int,
                     help='print frequency (default: 10)')
 
 
@@ -108,9 +108,25 @@ parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='s
                     help='True to give just the prediction at the end of the network no early exits')
 parser.add_argument('--small_datasets', dest='small_datasets', action='store_true',
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
-parser.add_argument('--no-log', dest='no_log', action='store_true',
-                    help='do not log if this is set true')
-parser.set_defaults(no_log=False)
+parser.add_argument('--no_wandb_log', action='store_true',
+                    help='do not log to wandb if this is set true')
+parser.add_argument('--lr',  default=0.8, type=float,
+                    help='inital learning rate')
+parser.add_argument('--lr_decay', default=.1, type=float,
+                    help='learning rate decay factor')
+parser.add_argument('--weight_decay', default=1e-4, type=float,
+                    help='weight decay factor')
+parser.add_argument('--classification_loss_train', action='store_true',
+                    help='use the classification loss to train')
+parser.add_argument('--infopro_loss_train', action='store_true',
+                    help='use the infopro loss to train')
+parser.add_argument('--infopro_classification_loss_train', action='store_true',
+                    help='use the infopro and classification loss to train')
+parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
+                    help='given value v times infopro plus (1-v) times classifcation is now the loss')
+parser.add_argument('--confidence_threshold', default=.5, type=float,
+                    help='what entropy based confidence level is needed to early exit')
+
 
 args = parser.parse_args()
 
@@ -119,11 +135,14 @@ training_configurations = {
     'resnet': {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
+        # 'initial_learning_rate': args.lr,
         'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
-        'changing_lr': [80, 120],
-        'lr_decay_rate': 0.1,
+        'changing_lr': [args.train_total_epochs//2, args.train_total_epochs//4*3],
+        'lr_decay_rate': .1,
+        # 'lr_decay_rate': args.lr_decay,
         'momentum': 0.9,
         'nesterov': True,
+        # 'weight_decay': args.weight_decay,
         'weight_decay': 1e-4,
     }
 }
@@ -143,9 +162,41 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_ixy_1_' + str(args.ixy_1) \
               + '_ixx_2_' + str(args.ixx_2) \
               + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '')
-
-record_path = './logs/' + exp_name
+              + ('_cos_lr_' if args.cos_lr else '') \
+              + '_joint_train_' + str(args.joint_train) \
+              + '_layerwise_train_' + str(args.layerwise_train) \
+              + '_locally_train_' + str(args.locally_train) \
+              + '_train_total_epochs_' + str(args.train_total_epochs)\
+              + '_confidence_threshold_' + str(args.confidence_threshold)\
+              + '_classification_loss_train_' + str(args.classification_loss_train) \
+              + '_infopro_loss_train_' + str(args.infopro_loss_train) \
+              + '_infopro_classification_loss_train_' + str(args.infopro_classification_loss_train)  \
+              + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)
+                   
+file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+              + str(args.dataset) \
+              + '_' + str(args.model) + str(args.layers) \
+              + '_K_' + str(args.local_module_num) \
+              + '_' + str(args.name) \
+              + '/' \
+              + 'no_' + str(args.no) \
+              + '_aux_net_config_' + str(args.aux_net_config) \
+              + '_local_loss_mode_' + str(args.local_loss_mode) \
+              + '_aux_net_widen_' + str(args.aux_net_widen) \
+              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
+              + '_ixx_1_' + str(args.ixx_1) \
+              + '_ixy_1_' + str(args.ixy_1) \
+              + '_ixx_2_' + str(args.ixx_2) \
+              + '_ixy_2_' + str(args.ixy_2) \
+              + ('_cos_lr_' if args.cos_lr else '') \
+              + '_joint_train_' + str(args.joint_train) \
+              + '_layerwise_train_' + str(args.layerwise_train) \
+              + '_locally_train_' + str(args.locally_train) \
+              + '_train_total_epochs_' + str(args.train_total_epochs)   
+                      
+                          
+# record_path = './logs/' + exp_name
+record_path = './logs/' + file_exp_name
 
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
@@ -156,16 +207,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
-    if not args.no_log:
+    
+    if not args.no_wandb_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
-        wandb_api_key = os.environ.get('WANDB_API_KEY')
-        if wandb_api_key is None:
-            raise ValueError("Please set the WANDB_API_KEY environment variable.")
+        wandb_api_key = os.environ.get('')
         
         wandb.login(key=wandb_api_key)
-        wandb.init(project='DGL-splits-resnet', entity='ghotifish', name=exp_name)
+        wandb.init(project='Project-X-Experiments', entity='ghotifish', name=exp_name)
         config = wandb.config
         config.args = args
+
 
     global best_prec1
     best_prec1 = 0
@@ -240,11 +291,11 @@ def main():
         train_loader = torch.utils.data.DataLoader(
             datasets.__dict__[args.dataset.upper()]('./data', download=True, transform=transform_train,
                                                     **kwargs_dataset_train),
-            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
+            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(100, size=500)),  **kwargs)
         val_loader = torch.utils.data.DataLoader(
             datasets.__dict__[args.dataset.upper()]('./data', transform=transform_test,
                                                     **kwargs_dataset_test),
-            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(200, size=1000)),  **kwargs)
+            batch_size=training_configurations[args.model]['batch_size'], sampler=torch.utils.data.SubsetRandomSampler(np.random.randint(100, size=500)),  **kwargs)
 
     # create model
     if args.model == 'resnet':
@@ -263,7 +314,11 @@ def main():
              aux_net_feature_dim=args.aux_net_feature_dim, 
              joint_train = args.joint_train,
              layerwise_train = args.layerwise_train,
-             locally_train = args.locally_train)
+             locally_train = args.locally_train,
+             infopro_loss_train=args.infopro_loss_train,  
+             classification_loss_train=args.classification_loss_train,
+             infopro_classification_loss_train = args.infopro_classification_loss_train,
+             infopro_classification_ratio= args.infopro_classification_ratio)
     else:
         raise NotImplementedError
     
@@ -297,36 +352,59 @@ def main():
     else:
         start_epoch = 0
 
-    if not args.no_log:
+    if not args.no_wandb_log:
         wandb.watch(model)
 
+    if args.layerwise_train:
+        curr_module = -1
+        epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
+    
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
-
-        adjust_learning_rate(optimizer, epoch + 1)
+        if args.layerwise_train:  
+            adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
+            if epoch % epochs_per_module == 0:
+                curr_module += 1
+        else:
+            adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        train_loss, train_loss_lst, train_prec_lst = train(train_loader, model, optimizer, epoch)
+        if args.layerwise_train:
+            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch, curr_module)
+        else:
+            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch)
+        
         train_prec1 = train_prec_lst[-1]
-        if not args.no_log:
+        
+        if not args.no_wandb_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
-            wandb.log({"Prec@1": train_prec1}, step=epoch)
+            wandb.log({"Train Prec@1": train_prec1}, step=epoch)
             for idx, loss in enumerate(train_loss_lst):
                 wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(train_prec_lst):
-                wandb.log({f"Prec@1_{idx}": prec}, step=epoch)
-
+                wandb.log({f"Train Prec@1_{idx}": prec}, step=epoch)
+            for idx, val in enumerate(train_exits_num):
+                wandb.log({f"Train Number of Exits at_{idx}": val}, step=epoch)
+            for idx, val in enumerate(train_exits_acc):
+                wandb.log({f"Train Prec@1 when exit at_{idx}": val}, step=epoch)
 
         # evaluate on validation set
-        val_loss, val_loss_lst, val_prec_lst = validate(val_loader, model, epoch)
-        val_prec1 = val_prec_lst[-1]
+        val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
+        if args.layerwise_train:
+            val_prec1 = val_prec_lst[curr_module]
+        else:
+            val_prec1 = val_prec_lst[-1]
 
-        if not args.no_log:
+        if not args.no_wandb_log:
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
             for idx, loss in enumerate(val_loss_lst):
                 wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
             for idx, prec in enumerate(val_prec_lst):
                 wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
+            for idx, val in enumerate(val_exits_num):
+                wandb.log({f"Val Number of Exits at_{idx}": val}, step=epoch)
+            for idx, val in enumerate(val_exits_acc):
+                wandb.log({f"Val Prec@1 when exit at_{idx}": val}, step=epoch)
 
         # remember best prec@1 and save checkpoint
         is_best = val_prec1 > best_prec1
@@ -344,12 +422,16 @@ def main():
         np.savetxt(accuracy_file, np.array(val_acc))
 
 
-def train(train_loader, model, optimizer, epoch):
+def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
+
+
 
 
     train_batches_num = len(train_loader)
@@ -368,11 +450,15 @@ def train(train_loader, model, optimizer, epoch):
                              ixx_1=args.ixx_1,
                              ixy_1=args.ixy_1,
                              ixx_2=args.ixx_2,
-                             ixy_2=args.ixy_2)
+                             ixy_2=args.ixy_2,
+                             target_module=curr_module)
+        
+        per_exit_loss = loss
         if args.joint_train:
-            per_exit_loss = loss
             loss = early_exit_joint_loss(loss)
             loss.backward()
+        elif args.layerwise_train:
+            loss = loss[curr_module]
         else:
             loss = loss[-1]
             
@@ -385,7 +471,14 @@ def train(train_loader, model, optimizer, epoch):
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), x.size(0))  
         for idx, meter in enumerate(per_exit_loss_meter):
-            meter.update(per_exit_loss[idx].item(), x.size(0))            
+            meter.update(per_exit_loss[idx].item(), x.size(0)) 
+            
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold)
+        for idx, meter in enumerate(per_exit_number_of_exits_meter):
+            meter.update(exit_num[idx].item()/x.size(0)*100, x.size(0))  
+        for idx, meter in enumerate(per_exit_acc_when_exit_meter):
+            meter.update(exit_acc[idx].item(), exit_num[idx].item())
+            
 
         batch_time.update(time.time() - end)
         end = time.time()
@@ -405,10 +498,12 @@ def train(train_loader, model, optimizer, epoch):
             fd.write(string + '\n')
             fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
             fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+            fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+            fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
             fd.close()
 
         # ave_top1 = [meter.ave for meter in top1]
-        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1]
+        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 def validate(val_loader, model, epoch):
@@ -417,6 +512,8 @@ def validate(val_loader, model, epoch):
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
     
     train_batches_num = len(val_loader)
 
@@ -436,8 +533,8 @@ def validate(val_loader, model, epoch):
                                  target=target_var,
                                  no_early_exit_pred = args.no_early_exit_pred)
             
-        if args.joint_train:
-            per_exit_loss = loss
+        per_exit_loss = loss
+        if args.joint_train or args.layerwise_train:
             loss = early_exit_joint_loss(loss)
         else:
             loss = loss[-1]
@@ -449,6 +546,12 @@ def validate(val_loader, model, epoch):
             meter.update(prec1[idx].item(), input.size(0)) 
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), input.size(0)) 
+            
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=args.confidence_threshold)
+        for idx, meter in enumerate(per_exit_number_of_exits_meter):
+            meter.update(exit_num[idx].item()/input.size(0)*100, input.size(0))  
+        for idx, meter in enumerate(per_exit_acc_when_exit_meter):
+            meter.update(exit_acc[idx].item(), exit_num[idx].item())
                                           
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -465,11 +568,13 @@ def validate(val_loader, model, epoch):
     fd.write(string + '\n')
     fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
     fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+    fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+    fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
     fd.close()
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
-    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1]
+    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 
@@ -506,7 +611,7 @@ class AverageMeter(object):
         self.value = val
         self.sum += val * n
         self.count += n
-        self.ave = self.sum / self.count
+        self.ave = self.sum / self.count if self.count >0 else 0
 
 
 def adjust_learning_rate(optimizer, epoch):
@@ -558,6 +663,11 @@ def accuracy_all_exits(output, target, topk=(1,)):
     
     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
+
+
+    
+
 
     res = []
     for k in topk:
@@ -565,6 +675,37 @@ def accuracy_all_exits(output, target, topk=(1,)):
         correct_k = correct[:,:k].reshape(correct.shape[0],-1).float().sum(1)
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
+
+def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
+    """Computes the precision@k for the specified values of k"""
+    maxk = max(topk)
+    batch_size = target.size(0)
+    output = torch.stack(output).detach()
+
+    _, pred = output.topk(maxk, 2, True, True)
+    
+    prob = torch.softmax(output,dim=2)
+    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
+    
+    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
+    prob = torch.softmax(output,dim=2)
+    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
+    p = p+1
+    e = p>threshold
+    exits = torch.zeros(p.shape[0],1,device='cpu')
+    exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+    for m in range(p.shape[0]):
+        exits[m] = e[m].sum()
+    for m in range(p.shape[0]):
+        if exits[m] != 0:
+            exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+            sum = exit_preds.float().sum()
+            avg =  sum/exit_preds.shape[0]*100.0
+            exits_acc[m] = avg
+
+    return exits, exits_acc
 
 if __name__ == '__main__':
     main()
