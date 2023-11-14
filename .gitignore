@@ -137,4 +137,6 @@ test_batch
 *.tar.gz
 readme.html
 
-
+mine2/logs/*
+mine2/mondayrun.sh
+mine2/wandb/*
