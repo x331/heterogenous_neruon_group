@@ -8,10 +8,11 @@ def early_exit_joint_loss(losses,wieghts=0):
         return torch.mean(torch.stack(losses))
         
     
+# need better way to know what parameters belong to what module
 def freeze_modules(model, target_module):
     # TODO: add memory of what has been frozen to check
     last_module_seen = False
-    
+
     if target_module > 0:
         print("Starting gradient freeze")
         for name, param in model.named_parameters():
