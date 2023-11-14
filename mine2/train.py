@@ -389,7 +389,10 @@ def main():
 
         # evaluate on validation set
         val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
-        val_prec1 = val_prec_lst[-1]
+        if args.layerwise_train:
+            val_prec1 = val_prec_lst[curr_module]
+        else:
+            val_prec1 = val_prec_lst[-1]
 
         if not args.no_wandb_log:
             wandb.log({"Val Loss": val_loss}, step=epoch)
