@@ -271,8 +271,9 @@ class InfoProResNet(nn.Module):
                                 for _ in range(self.local_module_num - 1 - local_module_i):
                                     loss_per_exit.append(torch.zeros_like(loss_ixy))
                                     pred_per_exit.append(torch.zeros_like(preds))
-                                
-                                loss_ixy.backward()
+                                    
+                                if self.training:
+                                    loss_ixy.backward()
                                 return pred_per_exit, loss_per_exit
                             else:
                                 # detach the current module from computation graph, only need to keep the target module
@@ -331,8 +332,8 @@ class InfoProResNet(nn.Module):
                                         for _ in range(self.local_module_num - 1 - local_module_i):
                                             loss_per_exit.append(torch.zeros_like(loss_ixy))
                                             pred_per_exit.append(torch.zeros_like(preds))
-                                        
-                                        loss_ixy.backward()
+                                        if self.training:
+                                            loss_ixy.backward()
                                         return pred_per_exit, loss_per_exit
                                     else:
                                         # detach the current module from computation graph, only need to keep the target module
