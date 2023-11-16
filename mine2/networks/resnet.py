@@ -308,13 +308,17 @@ class InfoProResNet(nn.Module):
                                     if not self.infopro_loss_train:
                                         classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                     if self.classification_loss_train:
+                                        print('aaaa')
                                         loss = classloss
                                     elif self.infopro_loss_train:
                                         loss = infoproloss
+                                        print('bbb')
                                     elif self.infopro_classification_loss_train:
                                         loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
+                                        print('cccc')
                                     if self.training : 
-                                        loss.backward()        
+                                        loss.backward()     
+                                        print('ddd')   
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
                                     x = x.detach()
