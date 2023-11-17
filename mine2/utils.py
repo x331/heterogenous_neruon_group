@@ -11,7 +11,7 @@ def early_exit_joint_loss(losses,wieghts=0):
 
 def freeze_module_before(model, target_module):
     if target_module > 0:
-        print("Starting gradient freeze")
+        print("Starting module freeze")
         stage = model.infopro_config[target_module - 1][0]
         # layer right after the end of the previous module
         if target_module > 1:
@@ -25,9 +25,8 @@ def freeze_module_before(model, target_module):
             
             # reached end of module
             if model.infopro_config[target_module - 1][1] == layer_i:
-                print("Froze module " + str(target_module - 1))
                 eval('model.aux_classifier_' + str(stage) + '_' + str(layer_i)).requires_grad = False
-                print("Finished gradient freeze")
+                print("Finished module freeze")
                 return
 
         print("Froze everything")
