@@ -18,7 +18,7 @@ import torchvision.transforms as transforms
 
 import networks.resnet
 
-from utils import early_exit_joint_loss, freeze_modules_before
+from utils import early_exit_joint_loss, freeze_module_before
 
 parser = argparse.ArgumentParser(description='InfoPro-PyTorch')
 parser.add_argument('--dataset', default='cifar10', type=str,
@@ -309,7 +309,7 @@ def main():
         if args.layerwise_train:
             if epoch % epochs_per_module == 0:
                 curr_module += 1
-                freeze_modules_before(model.module, curr_module)
+                freeze_module_before(model.module, curr_module)
                 optimizer = torch.optim.SGD([param for param in model.parameters() if param.requires_grad],
                                     lr=training_configurations[args.model]['initial_learning_rate'],
                                     momentum=training_configurations[args.model]['momentum'],
