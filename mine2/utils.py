@@ -9,13 +9,15 @@ def early_exit_joint_loss(losses,wieghts=0):
         
     
 
+# input goes through a single conv layer before being fed through layers in layers array, so need to account for that
+# also probably need to use the actual parameters of the model
 def freeze_modules_before(model, target_module):
     if target_module > 0:
         curr_module = 0
         print("Starting module freeze")
 
         while model.infopro_config[curr_module][0] == 0:
-            eval('model.layer0')[model.infopro_config[curr_module][1]].requires_grad = False
+            eval('model.layer' + )[model.infopro_config[curr_module][1]].requires_grad = False
             curr_module += 1
             if curr_module == target_module:
                 print("Finished module freeze of stage 0")
