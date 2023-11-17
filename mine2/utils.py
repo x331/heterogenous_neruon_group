@@ -8,19 +8,25 @@ def early_exit_joint_loss(losses,wieghts=0):
         return torch.mean(torch.stack(losses))
         
     
-# need better way to know what parameters belong to what module
-def freeze_modules(model, target_module):
-    # TODO: add memory of what has been frozen to check
-    last_module_seen = False
 
+def freeze_modules_before(model, target_module):
     if target_module > 0:
         print("Starting gradient freeze")
-        for name, param in model.named_parameters():
-            param.requires_grad = False
-            if "aux_classifier_{}".format(target_module + 1) in name:
-                if not last_module_seen:
-                    print("Found last module")
-                last_module_seen = True
-            elif last_module_seen:
-                print("---Exiting module before " + name + "---")
-                return
+        curr_module = 0
+        for stage_i in (1, 2, 3):
+            for layer_i in range(model.layers[stage_i - 1]):
+                # freeze layer
+                eval('model.layer' + str(stage_i))[layer_i].requires_grad = False
+                
+                # reached end of module
+                if model.infopro_config[curr_module][0] == stage_i \
+                    and model.infopro_config[curr_module][1] == layer_i:
+                    print("Froze module " + str(curr_module))
+                    eval('model.aux_classifier_' + str(stage_i) + '_' + str(layer_i)).requires_grad = False
+                    curr_module += 1
+                    if curr_module == target_module:
+                        print("Finished gradient freeze")
+                        return
+
+        print("Froze everything")
+        
