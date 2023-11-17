@@ -19,6 +19,9 @@ def freeze_modules_before(model, target_module):
                 eval('model.layer' + str(stage_i))[layer_i].requires_grad = False
                 print("froze layer")
 
+                print("Module stage:", model.infopro_config[curr_module][0])
+                print("Module layer:", model.infopro_config[curr_module][1])
+
                 # reached end of module
                 if model.infopro_config[curr_module][0] == stage_i \
                     and model.infopro_config[curr_module][1] == layer_i:
