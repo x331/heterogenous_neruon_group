@@ -309,7 +309,7 @@ def main():
         if args.layerwise_train:
             if epoch % epochs_per_module == 0:
                 curr_module += 1
-                freeze_modules_before(model, curr_module)
+                freeze_modules_before(model.module, curr_module)
                 optimizer = torch.optim.SGD([param for param in model.parameters() if param.requires_grad],
                                     lr=training_configurations[args.model]['initial_learning_rate'],
                                     momentum=training_configurations[args.model]['momentum'],
