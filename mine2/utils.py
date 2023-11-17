@@ -14,6 +14,9 @@ def freeze_modules_before(model, target_module):
         print("Module {} stage: {}".format(i, model.infopro_config[i][0]))
         print("Module {} layer: {}".format(i, model.infopro_config[i][1]))
     
+    for i in range (1, 2, 3):
+        print("Number of layers in stage {}: {}".format(i, model.layers[i - 1]))
+    
     if target_module > 0:
         curr_module = 0
         print("Starting module freeze")
@@ -22,6 +25,9 @@ def freeze_modules_before(model, target_module):
                 # freeze layer
                 eval('model.layer' + str(stage_i))[layer_i].requires_grad = False
                 print("froze layer")
+
+                if stage_i == 0:
+                    return
 
                 # reached end of module
                 if model.infopro_config[curr_module][0] == stage_i \
