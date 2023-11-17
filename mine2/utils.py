@@ -14,7 +14,7 @@ def freeze_modules_before(model, target_module):
         print("Module {} stage: {}".format(i, model.infopro_config[i][0]))
         print("Module {} layer: {}".format(i, model.infopro_config[i][1]))
     
-    for i in range (1, 2, 3):
+    for i in (1, 2, 3):
         print("Number of layers in stage {}: {}".format(i, model.layers[i - 1]))
     
     if target_module > 0:
