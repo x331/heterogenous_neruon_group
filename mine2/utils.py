@@ -21,7 +21,7 @@ def freeze_modules_before(model, target_module):
 
                 if model.infopro_config[curr_module][0] == 0:
                     curr_module += 1
-                    return
+                    continue
 
                 # reached end of module
                 if model.infopro_config[curr_module][0] == stage_i \
