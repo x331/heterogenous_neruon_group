@@ -310,7 +310,8 @@ def main():
             if epoch % epochs_per_module == 0:
                 curr_module += 1
                 freeze_modules_before(model.module, curr_module)
-                print("Model: ", model.named_parameters.keys())
+                for name, param in model.named_parameters():
+                    print(name)
                 optimizer = torch.optim.SGD([param for param in model.parameters() if param.requires_grad],
                                     lr=training_configurations[args.model]['initial_learning_rate'],
                                     momentum=training_configurations[args.model]['momentum'],
