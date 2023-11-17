@@ -10,9 +10,7 @@ def early_exit_joint_loss(losses,wieghts=0):
     
 
 def freeze_modules_before(model, target_module):
-    for i in range(16):
-        print("Module {} stage: {}".format(i, model.infopro_config[i][0]))
-        print("Module {} layer: {}".format(i, model.infopro_config[i][1]))
+    print("Module information:", model.infopro_config)
     
     for i in (1, 2, 3):
         print("Number of layers in stage {}: {}".format(i, model.layers[i - 1]))
