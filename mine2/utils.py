@@ -16,12 +16,12 @@ def freeze_modules_before(model, target_module):
         curr_module = 0
         print("Starting module freeze")
 
-        while model.infopro_config[curr_module][0] == 0:
-            eval('model.layer' + )[model.infopro_config[curr_module][1]].requires_grad = False
-            curr_module += 1
-            if curr_module == target_module:
-                print("Finished module freeze of stage 0")
-                return
+        # while model.infopro_config[curr_module][0] == 0:
+        #     eval('model.layer' + )[model.infopro_config[curr_module][1]].requires_grad = False
+        #     curr_module += 1
+        #     if curr_module == target_module:
+        #         print("Finished module freeze of stage 0")
+        #         return
 
 
         for stage_i in (1, 2, 3):
