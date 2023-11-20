@@ -152,7 +152,7 @@ class InfoProResNet(nn.Module):
             if self.classification_loss_train  or self.infopro_classification_loss_train:
                 exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
                     '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                    'loss_mode=local_loss_mode, class_num=class_num, '
+                    'loss_mode=cross_entropy, class_num=class_num, '
                     'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
 
         
