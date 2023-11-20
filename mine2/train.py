@@ -502,8 +502,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
             fd.close()
 
-        # ave_top1 = [meter.ave for meter in top1]
-        return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
+    # ave_top1 = [meter.ave for meter in top1]
+    return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 def validate(val_loader, model, epoch):
