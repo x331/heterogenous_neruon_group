@@ -239,6 +239,7 @@ class InfoProResNet(nn.Module):
                             preds = 0
                             loss = 0
                             if not self.classification_loss_train:
+                                print("Not using classication loss")
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
@@ -246,6 +247,8 @@ class InfoProResNet(nn.Module):
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                             if not self.infopro_loss_train:
+                                print("Not using infopro loss")
+                                # Why are we using self.pred_head here instead of the aux_classifier?
                                 classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                             if self.classification_loss_train:
                                 loss = classloss
@@ -254,7 +257,8 @@ class InfoProResNet(nn.Module):
                             elif self.infopro_classification_loss_train:
                                 loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
                                 
-                            if self.training :    
+                            if self.training:
+                                print("Performing backprop on loss:", loss)  
                                 loss.backward()        
                             loss_per_exit.append(loss)
                             pred_per_exit.append(preds)
@@ -306,6 +310,7 @@ class InfoProResNet(nn.Module):
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                         infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                     if not self.infopro_loss_train:
+                                        print("Local train with no infopro loss...")
                                         classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                     if self.classification_loss_train:
                                         # print('aaaa')
@@ -317,6 +322,7 @@ class InfoProResNet(nn.Module):
                                         loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
                                         # print('cccc')
                                     if self.training : 
+                                        print("Performing backprop on loss:", loss)
                                         loss.backward()     
                                         # print('ddd')   
                                     loss_per_exit.append(loss)
@@ -355,8 +361,9 @@ class InfoProResNet(nn.Module):
             loss_per_exit.append(fc_loss)
             if not self.joint_train and not self.layerwise_train and self.locally_train:
                 loss = fc_loss
-                if self.training:
-                    loss.backward()            
+                # Is this just training the last layer and doing backward pass on that layer?
+                # if self.training:
+                #     loss.backward()            
             return pred_per_exit, loss_per_exit
 
         else:
