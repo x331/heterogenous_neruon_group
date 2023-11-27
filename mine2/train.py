@@ -126,6 +126,8 @@ parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
                     help='given value v times infopro plus (1-v) times classifcation is now the loss')
 parser.add_argument('--confidence_threshold', default=.5, type=float,
                     help='what entropy based confidence level is needed to early exit')
+parser.add_argument('--learning_rate', default=.1, type=float,
+                    help='what initial learning rate you want to use')
 
 
 args = parser.parse_args()
@@ -136,7 +138,7 @@ training_configurations = {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         # 'initial_learning_rate': args.lr,
-        'initial_learning_rate': 0.8 if args.dataset in ['cifar10', 'svhn'] else 0.1,
+        'initial_learning_rate': args.learning_rate,
         'changing_lr': [args.train_total_epochs//2, args.train_total_epochs//4*3],
         'lr_decay_rate': .1,
         # 'lr_decay_rate': args.lr_decay,
