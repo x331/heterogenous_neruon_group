@@ -337,9 +337,7 @@ class InfoProResNet(nn.Module):
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
                                     x = x.detach()
-                                            
-
-                                
+                                                
                             else:
                                 loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
