@@ -120,6 +120,14 @@ class InfoProResNet(nn.Module):
         self.classification_loss_train = classification_loss_train
         self.infopro_classification_loss_train = infopro_classification_loss_train
         self.infopro_classification_ratio = infopro_classification_ratio
+
+        print("Joint train:", self.joint_train)
+        print("Layerwise train:", self.layerwise_train)
+        print("Locally train:", self.locally_train)
+        print("InfoPro loss train:", self.infopro_loss_train)
+        print("Classification loss train:", self.classification_loss_train)
+        print("InfoPro classification loss train:", self.infopro_classification_loss_train)
+        print("InfoPro classification ratio:", self.infopro_classification_ratio)
         
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
@@ -362,8 +370,8 @@ class InfoProResNet(nn.Module):
             if not self.joint_train and not self.layerwise_train and self.locally_train:
                 loss = fc_loss
                 # Is this just training the last layer and doing backward pass on that layer?
-                # if self.training:
-                #     loss.backward()            
+                if self.training:
+                    loss.backward()            
             return pred_per_exit, loss_per_exit
 
         else:
