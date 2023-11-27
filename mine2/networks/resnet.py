@@ -254,13 +254,13 @@ class InfoProResNet(nn.Module):
                                 loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                            if not self.infopro_loss_train:
-                                print("Not using infopro loss")
-                                # Why are we using self.pred_head here instead of the aux_classifier?
-                                classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            if self.classification_loss_train:
-                                loss = classloss
-                            elif self.infopro_loss_train:
+                            # if not self.infopro_loss_train:
+                            #     print("Not using infopro loss")
+                            #     # Why are we using self.pred_head here instead of the aux_classifier?
+                            #     classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                            # if self.classification_loss_train:
+                            #     loss = classloss
+                            if self.infopro_loss_train:
                                 loss = infoproloss
                             elif self.infopro_classification_loss_train:
                                 loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
@@ -317,12 +317,14 @@ class InfoProResNet(nn.Module):
                                         loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                         infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                                    if not self.infopro_loss_train:
-                                        classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                    if self.classification_loss_train:
-                                        # print('aaaa')
-                                        loss = classloss
-                                    elif self.infopro_loss_train:
+                                    
+                                    # Below is being run when it is not supposed to
+                                    # if not self.infopro_loss_train:
+                                    #     classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                    # if self.classification_loss_train:
+                                    #     # print('aaaa')
+                                    #     loss = classloss
+                                    if self.infopro_loss_train:
                                         loss = infoproloss
                                         # print('bbb')
                                     elif self.infopro_classification_loss_train:
