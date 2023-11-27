@@ -318,7 +318,6 @@ class InfoProResNet(nn.Module):
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                         infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                                     if not self.infopro_loss_train:
-                                        print("Local train with no infopro loss...")
                                         classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                     if self.classification_loss_train:
                                         # print('aaaa')
