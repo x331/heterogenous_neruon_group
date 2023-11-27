@@ -247,7 +247,6 @@ class InfoProResNet(nn.Module):
                             preds = 0
                             loss = 0
                             if not self.classification_loss_train:
-                                print("Not using classication loss")
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
@@ -255,7 +254,6 @@ class InfoProResNet(nn.Module):
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
                             if not self.infopro_loss_train:
-                                print("Not using infopro loss")
                                 # Why are we using self.pred_head here instead of the aux_classifier?
                                 classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                             if self.classification_loss_train:
