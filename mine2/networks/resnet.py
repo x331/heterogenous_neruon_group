@@ -56,7 +56,6 @@ class BasicBlock(nn.Module):
             self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
             if  downsample != None:
                 if self.beginning:
-                    print(downsample,self.expansion)
                     self.downsample = nn.Sequential(
                         nn.Conv2d(inplanes, planes * downsample, kernel_size=1, stride=stride, bias=False),
                         nn.BatchNorm2d(planes * downsample)
