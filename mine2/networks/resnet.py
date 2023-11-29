@@ -23,15 +23,9 @@ def conv3x3(in_planes, out_planes, stride=1):
 class BasicBlock(nn.Module):
     expansion=1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0):
         super(BasicBlock, self).__init__()
-        if beginning:
-            self.conv1 = conv3x3(inplanes, planes, stride)
-        else:
-            num_chan = inplanes
-            self.conv1a = conv3x3(inplanes, planes, stride)
-            self.conv1a = conv3x3(inplanes, planes, stride)
-
+        self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
@@ -58,6 +52,44 @@ class BasicBlock(nn.Module):
         out += residual
         out = self.relu(out)
 
+        return out
+    
+    
+class BasicBlock(nn.Module):
+    expansion=1
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
+        super(BasicBlock, self).__init__()
+        if beginning:
+            self.conv1 = conv3x3(inplanes, planes, stride)
+        else:
+            num_chan = inplanes
+            self.conv1a = conv3x3(inplanes, planes, stride)
+            self.conv1a = conv3x3(inplanes, planes, stride)
+
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv2 = conv3x3(planes, planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.downsample = downsample
+        self.stride = stride
+        self.dropout = nn.Dropout(p=dropout_rate)
+
+    def forward(self, x):
+        residual = x
+        
+        out = self.conv1(x)
+        out = self.bn1(out)
+        out = self.relu(out)
+        
+        out = self.dropout(out)
+        out = self.conv2(out)
+        out = self.bn2(out)
+        
+        if self.downsample is not None:
+            residual = self.downsample(x)
+            
+        out += residual
+        out = self.relu(out)
         return out
 
 
