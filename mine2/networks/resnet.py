@@ -411,7 +411,7 @@ class InfoProResNet(nn.Module):
                 first_conv_groups = False
                 if (b-1) in self._get_local_mod_boundaries(stage):
                     first_conv_groups = True
-                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate, beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
+                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate,split=True beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
                 
 
         return nn.Sequential(*layers)
