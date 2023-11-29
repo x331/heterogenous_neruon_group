@@ -109,7 +109,7 @@ class InfoProResNet(nn.Module):
                                                   "For other networks, please set network configs in .configs."
                                                   
         try:
-            self.h_split_ratios = h_split_ratios[arch][local_module_num][self.h_split]
+            self.h_split_ratios = h_split_ratios[arch][local_module_num][h_split]
         except:
             raise NotImplementedError
 
