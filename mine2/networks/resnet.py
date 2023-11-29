@@ -41,6 +41,7 @@ class BasicBlock(nn.Module):
             if beginning:
                 out_chan1 = math.floor(planes*h_ratio)
                 out_chan2 = planes - out_chan1
+                print(1,out_chan1,out_chan2)
                 self.conv1a = conv3x3(inplanes, out_chan1, stride)
                 self.conv1a = conv3x3(inplanes, out_chan2, stride) 
             else:
