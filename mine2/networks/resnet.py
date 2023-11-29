@@ -124,7 +124,7 @@ class InfoProResNet(nn.Module):
         self.info_class_ratio = info_class_ratio
         self.h_split = h_split
         
-        if self.h_split == -1
+        if self.h_split == -1:
             self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         else:
             num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
@@ -230,7 +230,7 @@ class InfoProResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward_original(self, img):
-        if self.h_split == -1
+        if self.h_split == -1:
             x = self.conv1(img)
         else:
             xa = self.conv1a(img)
