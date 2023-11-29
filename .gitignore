@@ -140,3 +140,5 @@ readme.html
 mine2/logs/*
 mine2/mondayrun.sh
 mine2/wandb/*
+mine2/runme.sh.local
+mine2/data/*
