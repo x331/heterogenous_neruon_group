@@ -40,6 +40,16 @@ InfoPro = {
     }
 }
 
+
+h_split_ratios_32 = {
+    'resnet32': {
+        16: {1: [.5, .5, .5, .5, .5, 
+                 .5, .5, .5, .5, .5,
+                 .5, .5, .5, .5, .5],   
+        }
+    },
+}
+
 InfoPro_balanced_memory = {
     'resnet110': {
         'cifar10': {

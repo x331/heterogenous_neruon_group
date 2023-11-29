@@ -101,7 +101,8 @@ class InfoProResNet(nn.Module):
                  aux_net_config='1c2f', local_loss_mode='contrast',
                  aux_net_widen=1, aux_net_feature_dim=128,
                  train_type='locally',
-                 loss_type='class', info_class_ratio=.0):
+                 loss_type='class', info_class_ratio=.0,
+                 h_split = -1):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -116,6 +117,7 @@ class InfoProResNet(nn.Module):
         self.train_type = train_type
         self.loss_type = loss_type
         self.info_class_ratio = info_class_ratio
+        self.h_split = h_split
         
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
