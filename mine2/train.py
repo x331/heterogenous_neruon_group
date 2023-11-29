@@ -118,7 +118,7 @@ parser.add_argument('--loss_type', default='class', type=str,
                     help='loss_type: [class|info|both]')
 parser.add_argument('--train_type', default='class', type=str,
                     help='train_type: [joint|local|layer]')
-parser.add_argument('--h-split',dest='h_split', default=-1, type=int,
+parser.add_argument('--h_split', default=-1, type=int,
                     help='horizontal group split ration config')
 
 
