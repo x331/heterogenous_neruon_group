@@ -260,7 +260,12 @@ class InfoProResNet(nn.Module):
             loss_per_exit = []
             pred_per_exit = []
 
-            x = self.conv1(img)
+            if self.h_split == -1:
+                x = self.conv1(img)
+            else:
+                xa = self.conv1a(img)
+                xb = self.conv1a(img)
+                x = torch.cat((xa,xb),dim=0)
             x = self.bn1(x)
             x = self.relu(x)
 
