@@ -23,31 +23,71 @@ def conv3x3(in_planes, out_planes, stride=1):
 class BasicBlock(nn.Module):
     expansion=1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False beginning=False,h_ratio=1):
         super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
         self.dropout = nn.Dropout(p=dropout_rate)
+        self.beginning = beginning
+        self.h_ratio = h_ratio
+        self.split = split
+        if not split :
+            self.conv1 = conv3x3(inplanes, planes, stride)
+            self.conv2 = conv3x3(planes, planes)
+        else:
+            if beginning:
+                out_chan1 = math.floor(plances*h_ratio)
+                out_chan2 = plances - out_chan1
+                self.conv1a = conv3x3(inplanes, out_chan1, stride)
+                self.conv1a = conv3x3(inplanes, out_chan2, stride) 
+            else:
+                in_chan1 = math.floor(inplanes*h_ratio)
+                in_chan2 = inplanes - in_chan1
+                out_chan1 = math.floor(planes*h_ratio)
+                out_chan1 = inplanes - out_chan1
+                self.conv1a = conv3x3(in_chan1, out_chan1, stride)
+                self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
+            num_chan1 = math.floor(planes*h_ratio)
+            num_chan2 = inplanes - out_chan1
+            self.conv2a = conv3x3(num_chan1, num_chan1, stride)
+            self.conv2b = conv3x3(num_chan2, num_chan2, stride)              
 
     def forward(self, x):
         residual = x
-
-        out = self.conv1(x)
+        
+        out = 0
+        if not self.split:
+            out = self.conv1(x)
+        else:
+            xa = self.conv1a(img)
+            xb = self.conv1b(img)
+            out = torch.cat((xa,xb),dim=1)
+        
         out = self.bn1(out)
         out = self.relu(out)
-
         out = self.dropout(out)
 
-        out = self.conv2(out)
+        if not self.split:
+            out = self.conv2(out)
+        else:
+            xa = self.conv2a(out)
+            xb = self.conv2b(out)
+            out = torch.cat((xa,xb),dim=1)
+            
         out = self.bn2(out)
 
         if self.downsample is not None:
-            residual = self.downsample(x)
+            if not self.split:
+                residual = self.downsample(x)
+            else:
+                # xa = self.downsample[0](x)
+                # xb = self.downsample[1](x)
+                # residual = torch.cat(xa,xb,dim=1)
+                residual = self.downsample(x)
+                
 
         out += residual
         out = self.relu(out)
@@ -55,64 +95,64 @@ class BasicBlock(nn.Module):
         return out
     
     
-class BasicBlock_h(nn.Module):
-    expansion=1
-    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
-        super(BasicBlock_h, self).__init__()
-        if beginning:
-            out_chan1 = math.floor(plances*h_ratio)
-            out_chan2 = plances - out_chan1
-            self.conv1a = conv3x3(inplanes, out_chan1, stride)
-            self.conv1a = conv3x3(inplanes, out_chan2, stride) 
-        else:
-            in_chan1 = math.floor(inplanes*h_ratio)
-            in_chan2 = inplanes - in_chan1
-            out_chan1 = math.floor(planes*h_ratio)
-            out_chan1 = inplanes - out_chan1
-            self.conv1a = conv3x3(in_chan1, out_chan1, stride)
-            self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
+# class BasicBlock_h(nn.Module):
+#     expansion=1
+#     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
+#         super(BasicBlock_h, self).__init__()
+#         if beginning:
+#             out_chan1 = math.floor(plances*h_ratio)
+#             out_chan2 = plances - out_chan1
+#             self.conv1a = conv3x3(inplanes, out_chan1, stride)
+#             self.conv1a = conv3x3(inplanes, out_chan2, stride) 
+#         else:
+#             in_chan1 = math.floor(inplanes*h_ratio)
+#             in_chan2 = inplanes - in_chan1
+#             out_chan1 = math.floor(planes*h_ratio)
+#             out_chan1 = inplanes - out_chan1
+#             self.conv1a = conv3x3(in_chan1, out_chan1, stride)
+#             self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
+#         self.bn1 = nn.BatchNorm2d(planes)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.conv2 = conv3x3(planes, planes)
 
-        num_chan1 = math.floor(planes*h_ratio)
-        num_chan2 = inplanes - out_chan1
-        self.conv2a = conv3x3(num_chan1, num_chan1, stride)
-        self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
+#         num_chan1 = math.floor(planes*h_ratio)
+#         num_chan2 = inplanes - out_chan1
+#         self.conv2a = conv3x3(num_chan1, num_chan1, stride)
+#         self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
         
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.downsample = downsample
-        self.stride = stride
-        self.dropout = nn.Dropout(p=dropout_rate)
+#         self.bn2 = nn.BatchNorm2d(planes)
+#         self.downsample = downsample
+#         self.stride = stride
+#         self.dropout = nn.Dropout(p=dropout_rate)
 
-    def forward(self, x):
-        residual = x
+#     def forward(self, x):
+#         residual = x
         
-        xa = self.conv1a(img)
-        xb = self.conv1b(img)
-        out = torch.cat((xa,xb),dim=1)
+#         xa = self.conv1a(img)
+#         xb = self.conv1b(img)
+#         out = torch.cat((xa,xb),dim=1)
         
-        out = self.bn1(out)
-        out = self.relu(out)
+#         out = self.bn1(out)
+#         out = self.relu(out)
         
-        out = self.dropout(out)
+#         out = self.dropout(out)
         
-        xa = self.conv2a(out)
-        xb = self.conv2b(out)
-        out = torch.cat((xa,xb),dim=1)
+#         xa = self.conv2a(out)
+#         xb = self.conv2b(out)
+#         out = torch.cat((xa,xb),dim=1)
         
-        out = self.bn2(out)
+#         out = self.bn2(out)
         
-        if self.downsample is not None:
-            # xa = self.downsample[0](x)
-            # xb = self.downsample[1](x)
-            # residual = torch.cat(xa,xb,dim=1)
-            residual = self.downsample(x)
+#         if self.downsample is not None:
+#             # xa = self.downsample[0](x)
+#             # xb = self.downsample[1](x)
+#             # residual = torch.cat(xa,xb,dim=1)
+#             residual = self.downsample(x)
 
             
-        out += residual
-        out = self.relu(out)
-        return out
+#         out += residual
+#         out = self.relu(out)
+#         return out
 
 
 class Bottleneck(nn.Module):
