@@ -98,36 +98,27 @@ parser.add_argument('--ixy_2', default=0.0, type=float,)   # \lambda_2 for (K-1)
 parser.add_argument('--train_total_epochs', default=160, type=int,
                     help='number of epochs to train for'
                          '(default: 10)')
-parser.add_argument('--joint_train', dest='joint_train' ,action='store_true',
-                    help='True if training early exit network in joint manner')
-parser.add_argument('--layerwise_train', dest='layerwise_train', action='store_true',
-                    help='True if training early exit network in layerwise manner')
-parser.add_argument('--locally_train', dest='locally_train', action='store_true',
-                    help='True if training early exit network in local manner')
 parser.add_argument('--no_early_exit_pred', dest='no_early_exit_pred', action='store_true',
                     help='True to give just the prediction at the end of the network no early exits')
 parser.add_argument('--small_datasets', dest='small_datasets', action='store_true',
                     help='True to use only dataloaders with a few hundred cases instead of all thousands')
 parser.add_argument('--no_wandb_log', action='store_true',
                     help='do not log to wandb if this is set true')
-parser.add_argument('--lr',  default=0.8, type=float,
-                    help='inital learning rate')
 parser.add_argument('--lr_decay', default=.1, type=float,
                     help='learning rate decay factor')
 parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='weight decay factor')
-parser.add_argument('--classification_loss_train', action='store_true',
-                    help='use the classification loss to train')
-parser.add_argument('--infopro_loss_train', action='store_true',
-                    help='use the infopro loss to train')
-parser.add_argument('--infopro_classification_loss_train', action='store_true',
-                    help='use the infopro and classification loss to train')
-parser.add_argument('--infopro_classification_ratio', default=.5, type=float,
+parser.add_argument('--info_class_ratio', default=.5, type=float,
                     help='given value v times infopro plus (1-v) times classifcation is now the loss')
-parser.add_argument('--confidence_threshold', default=.5, type=float,
+parser.add_argument('--confidence_threshold', default=0, type=float,
                     help='what entropy based confidence level is needed to early exit')
-parser.add_argument('--learning_rate', default=.1, type=float,
+parser.add_argument('--lr', default=.1, type=float,
                     help='what initial learning rate you want to use')
+parser.add_argument('--loss_type', default='class', type=str,
+                    help='loss_type: [class|info|both]')
+parser.add_argument('--train_type', default='class', type=str,
+                    help='train_type: [joint|local|layer]')
+
 
 
 args = parser.parse_args()
@@ -138,7 +129,7 @@ training_configurations = {
         'epochs': args.train_total_epochs,
         'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         # 'initial_learning_rate': args.lr,
-        'initial_learning_rate': args.learning_rate,
+        'initial_learning_rate': args.lr,
         'changing_lr': [args.train_total_epochs//2, args.train_total_epochs//4*3],
         'lr_decay_rate': .1,
         # 'lr_decay_rate': args.lr_decay,
@@ -165,40 +156,36 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_ixx_2_' + str(args.ixx_2) \
               + '_ixy_2_' + str(args.ixy_2) \
               + ('_cos_lr_' if args.cos_lr else '') \
-              + '_joint_train_' + str(args.joint_train) \
-              + '_layerwise_train_' + str(args.layerwise_train) \
-              + '_locally_train_' + str(args.locally_train) \
               + '_train_total_epochs_' + str(args.train_total_epochs)\
               + '_confidence_threshold_' + str(args.confidence_threshold)\
-              + '_classification_loss_train_' + str(args.classification_loss_train) \
-              + '_infopro_loss_train_' + str(args.infopro_loss_train) \
-              + '_infopro_classification_loss_train_' + str(args.infopro_classification_loss_train)  \
+              + '_train_type_' + str(args.train_type) \
+              + '_loss_type_' + str(args.loss_type) \
               + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)
                    
-file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
-              + str(args.dataset) \
-              + '_' + str(args.model) + str(args.layers) \
-              + '_K_' + str(args.local_module_num) \
-              + '_' + str(args.name) \
-              + '/' \
-              + 'no_' + str(args.no) \
-              + '_aux_net_config_' + str(args.aux_net_config) \
-              + '_local_loss_mode_' + str(args.local_loss_mode) \
-              + '_aux_net_widen_' + str(args.aux_net_widen) \
-              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
-              + '_ixx_1_' + str(args.ixx_1) \
-              + '_ixy_1_' + str(args.ixy_1) \
-              + '_ixx_2_' + str(args.ixx_2) \
-              + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '') \
-              + '_joint_train_' + str(args.joint_train) \
-              + '_layerwise_train_' + str(args.layerwise_train) \
-              + '_locally_train_' + str(args.locally_train) \
-              + '_train_total_epochs_' + str(args.train_total_epochs)   
+# file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+#               + str(args.dataset) \
+#               + '_' + str(args.model) + str(args.layers) \
+#               + '_K_' + str(args.local_module_num) \
+#               + '_' + str(args.name) \
+#               + '/' \
+#               + 'no_' + str(args.no) \
+#               + '_aux_net_config_' + str(args.aux_net_config) \
+#               + '_local_loss_mode_' + str(args.local_loss_mode) \
+#               + '_aux_net_widen_' + str(args.aux_net_widen) \
+#               + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
+#               + '_ixx_1_' + str(args.ixx_1) \
+#               + '_ixy_1_' + str(args.ixy_1) \
+#               + '_ixx_2_' + str(args.ixx_2) \
+#               + '_ixy_2_' + str(args.ixy_2) \
+#               + ('_cos_lr_' if args.cos_lr else '') \
+#               + '_joint_train_' + str(args.joint_train) \
+#               + '_layerwise_train_' + str(args.layerwise_train) \
+#               + '_locally_train_' + str(args.locally_train) \
+#               + '_train_total_epochs_' + str(args.train_total_epochs)   
                       
                           
-# record_path = './logs/' + exp_name
-record_path = './logs/' + file_exp_name
+record_path = './logs/' + exp_name
+# record_path = './logs/' + file_exp_name
 
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
@@ -314,12 +301,8 @@ def main():
              local_loss_mode=args.local_loss_mode,
              aux_net_widen=args.aux_net_widen,
              aux_net_feature_dim=args.aux_net_feature_dim, 
-             joint_train = args.joint_train,
-             layerwise_train = args.layerwise_train,
-             locally_train = args.locally_train,
-             infopro_loss_train=args.infopro_loss_train,  
-             classification_loss_train=args.classification_loss_train,
-             infopro_classification_loss_train = args.infopro_classification_loss_train,
+             train_type = args.train_type,
+             loss_type = args.loss_type,
              infopro_classification_ratio= args.infopro_classification_ratio)
     else:
         raise NotImplementedError
@@ -357,12 +340,12 @@ def main():
     if not args.no_wandb_log:
         wandb.watch(model)
 
-    if args.layerwise_train:
+    if args.train_type == 'layer':
         curr_module = -1
         epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
     
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
-        if args.layerwise_train:  
+        if args.train_type == 'layer':  
             adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
             if epoch % epochs_per_module == 0:
                 curr_module += 1
@@ -370,7 +353,7 @@ def main():
             adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        if args.layerwise_train:
+        if args.train_type == 'layer':
             train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch, curr_module)
         else:
             train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch)
@@ -391,7 +374,7 @@ def main():
 
         # evaluate on validation set
         val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
-        if args.layerwise_train:
+        if args.train_type == 'layer':
             val_prec1 = val_prec_lst[curr_module]
         else:
             val_prec1 = val_prec_lst[-1]
@@ -456,10 +439,10 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                              target_module=curr_module)
         
         per_exit_loss = loss
-        if args.joint_train:
+        if args.train_type == 'joint':
             loss = early_exit_joint_loss(loss)
             loss.backward()
-        elif args.layerwise_train:
+        elif args.train_type == 'layer':
             loss = loss[curr_module]
         else:
             loss = loss[-1]
@@ -536,7 +519,7 @@ def validate(val_loader, model, epoch):
                                  no_early_exit_pred = args.no_early_exit_pred)
             
         per_exit_loss = loss
-        if args.joint_train or args.layerwise_train:
+        if args.train_type == 'joint' or args.train_type == 'layer':
             loss = early_exit_joint_loss(loss)
         else:
             loss = loss[-1]
