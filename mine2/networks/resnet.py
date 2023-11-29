@@ -25,6 +25,7 @@ class BasicBlock(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False, beginning=False,h_ratio=.5):
         super(BasicBlock, self).__init__()
+        print('hi')
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -68,7 +69,7 @@ class BasicBlock(nn.Module):
                     in_chan2 = inplanes - in_chan1
                     out_chan1 = math.floor(planes*h_ratio)
                     out_chan2 = planes - out_chan1 
-                    print(3,out_chan1,out_chan2)
+                    print(3,out_chan1,out_chan2,flush=True)
                     self.downsample = [nn.Sequential(
                             nn.Conv2d(in_chan1, out_chan1 * downsample, kernel_size=1, stride=stride, bias=False),
                             nn.BatchNorm2d(out_chan1 * downsample)
