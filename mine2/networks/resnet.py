@@ -207,6 +207,12 @@ class InfoProResNet(nn.Module):
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
                                                   "For other networks, please set network configs in .configs."
+        
+        try:
+            self.infopro_config = InfoPro_balanced_memory[arch][dataset][local_module_num] \
+                if balanced_memory else InfoPro[arch][local_module_num]
+        except:
+            raise NotImplementedError  
                                                   
         try:
             self.h_split_ratios = h_split_ratios[arch][local_module_num][h_split]
@@ -241,14 +247,7 @@ class InfoProResNet(nn.Module):
         self.fc = nn.Linear(self.feature_num, self.class_num)
         
 
-        self.criterion_ce = nn.CrossEntropyLoss()
-
-        try:
-            self.infopro_config = InfoPro_balanced_memory[arch][dataset][local_module_num] \
-                if balanced_memory else InfoPro[arch][local_module_num]
-        except:
-            raise NotImplementedError
-        
+        self.criterion_ce = nn.CrossEntropyLoss()        
         
         if self.h_split == -1:
             for item in self.infopro_config:
