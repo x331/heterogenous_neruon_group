@@ -322,6 +322,15 @@ class InfoProResNet(nn.Module):
             if module_index == stage:
                 boundaries.append(layer_index)
         return boundaries
+    
+    def _get_local_mod_pos(self, stage,layer):
+        pos = 0
+        for item in self.infopro_config:
+            module_index, layer_index = item
+            if module_index == stage and layer_index >= layer :
+                break
+            pos+=1
+        return pos
 
     # def _make_layer(self, block, planes, blocks, stride=1):
     #     downsample = None
@@ -355,8 +364,9 @@ class InfoProResNet(nn.Module):
                     nn.BatchNorm2d(planes * block.expansion)
                 )
             else:
+                self._get_local_mod_boundaries(stage-1) 
                 downsample = nn.Sequential(
-                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, groups=first_conv_groups, stride=stride, bias=False,split=true,beginning=,h_ratio=self.h_split_ratios),
+                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, , stride=stride, bias=False),
                     nn.BatchNorm2d(planes * block.expansion)
                 )
             
@@ -367,13 +377,14 @@ class InfoProResNet(nn.Module):
             for _ in range(1, blocks):
                 layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
         else:   
-            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate, first_conv_groups=first_conv_groups, groups=groups))
+            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate,split=true,beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
             self.inplanes = planes * block.expansion
             for b in range(1, blocks):
-                first_conv_groups = groups
+                first_conv_groups = False
                 if (b-1) in self._get_local_mod_boundaries(stage):
-                    first_conv_groups = 1
-                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate, first_conv_groups=first_conv_groups, groups=groups))
+                    first_conv_groups = True
+                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate, beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
+                
 
         return nn.Sequential(*layers)
 
