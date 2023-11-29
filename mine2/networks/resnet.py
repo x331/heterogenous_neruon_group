@@ -128,8 +128,8 @@ class InfoProResNet(nn.Module):
             self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         else:
             num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
-            self.conv1a = nn.Conv2d(3, self.num_chan, kernel_size=3, stride=1, padding=1, bias=False)
-            self.conv1b = nn.Conv2d(3, self.num_chan, kernel_size=3, stride=1, padding=1, bias=False)
+            self.conv1a = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
+            self.conv1b = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
 
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
