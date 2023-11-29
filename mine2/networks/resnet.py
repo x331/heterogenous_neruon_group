@@ -107,6 +107,11 @@ class InfoProResNet(nn.Module):
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
                                                   "For other networks, please set network configs in .configs."
+                                                  
+        try:
+            self.h_split_ratios = h_split_ratios[arch][local_module_num][self.h_split]
+        except:
+            raise NotImplementedError
 
         self.inplanes = wide_list[0]
         self.dropout_rate = dropout_rate
@@ -119,8 +124,13 @@ class InfoProResNet(nn.Module):
         self.info_class_ratio = info_class_ratio
         self.h_split = h_split
         
+        if self.h_split == -1
+            self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
+        else:
+            num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
+            self.conv1a = nn.Conv2d(3, self.num_chan, kernel_size=3, stride=1, padding=1, bias=False)
+            self.conv1b = nn.Conv2d(3, self.num_chan, kernel_size=3, stride=1, padding=1, bias=False)
 
-        self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, wide_list[1], layers[0])
@@ -138,13 +148,8 @@ class InfoProResNet(nn.Module):
         except:
             raise NotImplementedError
         
-        try:
-            self.h_split_ratios = h_split_ratios[arch][local_module_num][h_split]
-        except:
-            raise NotImplementedError
         
-        
-        if h_split == -1:
+        if self.h_split == -1:
             for item in self.infopro_config:
                 module_index, layer_index = item
                 if self.loss_type == 'info' or self.loss_type == 'both':
@@ -225,7 +230,12 @@ class InfoProResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward_original(self, img):
-        x = self.conv1(img)
+        if self.h_split == -1
+            x = self.conv1(img)
+        else:
+            xa = self.conv1a(img)
+            xb = self.conv1a(img)
+            x = torch.cat((xa,xb),dim=0)
         x = self.bn1(x)
         x = self.relu(x)
 
