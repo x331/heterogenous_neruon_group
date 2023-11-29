@@ -160,7 +160,7 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_confidence_threshold_' + str(args.confidence_threshold)\
               + '_train_type_' + str(args.train_type) \
               + '_loss_type_' + str(args.loss_type) \
-              + '_infopro_classification_ratio_' + str(args.info_class_ratio)
+              + '_info_class_ratio_' + str(args.info_class_ratio)
                    
 # file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
@@ -303,7 +303,7 @@ def main():
              aux_net_feature_dim=args.aux_net_feature_dim, 
              train_type = args.train_type,
              loss_type = args.loss_type,
-             infopro_classification_ratio= args.infopro_classification_ratio)
+             info_class_ratio= args.info_class_ratio)
     else:
         raise NotImplementedError
     
