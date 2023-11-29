@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import math
 
-from .configs import InfoPro, InfoPro_balanced_memory
+from .configs import InfoPro, InfoPro_balanced_memory,h_split_ratios
 from .auxiliary_nets import Decoder, AuxClassifier
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -137,21 +137,48 @@ class InfoProResNet(nn.Module):
                 if balanced_memory else InfoPro[arch][local_module_num]
         except:
             raise NotImplementedError
-
-        for item in self.infopro_config:
-            module_index, layer_index = item
-            if self.loss_type == 'info' or self.loss_type == 'both':
-                exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
-                    '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
-                exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
-                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                    'loss_mode=local_loss_mode, class_num=class_num, '
-                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
-            if self.loss_type == 'class'  or self.loss_type == 'both':
-                exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
-                    '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
-                    'loss_mode=local_loss_mode, class_num=class_num, '
-                    'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+        
+        try:
+            self.h_split_ratios = h_split_ratios[arch][local_module_num][h_split]
+        except:
+            raise NotImplementedError
+        
+        
+        if h_split != -1:
+            for item in self.infopro_config:
+                module_index, layer_index = item
+                if self.loss_type == 'info' or self.loss_type == 'both':
+                    exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
+                        '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
+                    exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
+                        '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                        'loss_mode=local_loss_mode, class_num=class_num, '
+                        'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+                if self.loss_type == 'class'  or self.loss_type == 'both':
+                    exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
+                        '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
+                        'loss_mode=local_loss_mode, class_num=class_num, '
+                        'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+        else:
+            for i,item in enumerate(self.infopro_config):
+                for group in ['a','b']:
+                    module_index, layer_index = item
+                    chan = floor(wide_list[module_index]*self.h_split_ratios[i])
+                    if group== 'b':
+                        chan = wide_list[module_index]-chan
+                        
+                    if self.loss_type == 'info' or self.loss_type == 'both':
+                        exec('self.decoder_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+                            '= Decoder(' + str(chan) + ', image_size, widen=aux_net_widen)')
+                        exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+                            '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+                            'loss_mode=local_loss_mode, class_num=class_num, '
+                            'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+                    if self.loss_type == 'class'  or self.loss_type == 'both':
+                        exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+                            '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+                            'loss_mode=local_loss_mode, class_num=class_num, '
+                            'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
 
         
         for m in self.modules():

@@ -40,7 +40,7 @@ class AuxClassifier(nn.Module):
     def __init__(self, inplanes, net_config='1c2f', loss_mode='contrast', class_num=10, widen=1, feature_dim=128):
         super(AuxClassifier, self).__init__()
 
-        assert inplanes in [16, 32, 64]
+        # assert inplanes in [16, 32, 64]
         assert net_config in ['0c1f', '0c2f', '1c1f', '1c2f', '1c3f', '2c2f']
         assert loss_mode in ['contrast', 'cross_entropy']
 
@@ -152,6 +152,19 @@ class AuxClassifier(nn.Module):
                     nn.ReLU(inplace=True),
                     nn.Linear(int(feature_dim * widen), self.fc_out_channels)
                 )
+            else:
+                num_chan2 = 64 if inplane>31 else 32
+                self.head = nn.Sequential(
+                    nn.Conv2d(inplane, int(num_chan2 * widen), kernel_size=3, stride=1, padding=1, bias=False),
+                    nn.BatchNorm2d(int(num_chan2 * widen)),
+                    nn.ReLU(),
+                    nn.AdaptiveAvgPool2d((1, 1)),
+                    nn.Flatten(),
+                    nn.Linear(int(num_chan2 * widen), int(feature_dim * widen)),
+                    nn.ReLU(inplace=True),
+                    nn.Linear(int(feature_dim * widen), self.fc_out_channels)
+                )
+                
 
         if net_config == '1c3f':
             if inplanes == 16:
