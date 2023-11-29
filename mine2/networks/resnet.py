@@ -127,6 +127,7 @@ class InfoProResNet(nn.Module):
         if self.h_split == -1:
             self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         else:
+            self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
             num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
             self.conv1a = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
             self.conv1b = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
