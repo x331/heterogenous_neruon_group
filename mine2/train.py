@@ -46,8 +46,6 @@ parser.add_argument('--name', default='', type=str,
                     help='name of experiment')
 parser.add_argument('--no', default='1', type=str,
                     help='index of the experiment (for recording convenience)')
-parser.add_argument('--print-freq', '-p', default=1, type=int,
-                    help='print frequency (default: 10)')
 
 
 # Cosine learning rate
@@ -120,6 +118,14 @@ parser.add_argument('--train_type', default='class', type=str,
                     help='train_type: [joint|local|layer]')
 parser.add_argument('--h_split', default=-1, type=int,
                     help='horizontal group split ration config')
+parser.add_argument('--dry-run', dest='dry_run', action='store_true',
+                    help='perform a dry run of the model without actual training')
+parser.set_defaults(dry_run=False)
+parser.add_argument('--save-checkpoint', dest='save_checkpoint', action='store_true',
+                    help='save the training checkpoints')
+parser.set_defaults(save_checkpoint=False)
+parser.add_argument('--print-freq', default=1, type=int,
+                    help='print frequency during training (default: 1)')
 
 
 
@@ -142,30 +148,16 @@ training_configurations = {
     }
 }
 
-exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
-              + str(args.dataset) \
-              + '_' + str(args.model) + str(args.layers) \
-              + '_K_' + str(args.local_module_num) \
-              + '_' + str(args.name) \
-              + '/' \
-              + 'no_' + str(args.no) \
-              + '_aux_net_config_' + str(args.aux_net_config) \
-              + '_local_loss_mode_' + str(args.local_loss_mode) \
-              + '_aux_net_widen_' + str(args.aux_net_widen) \
-              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
-              + '_ixx_1_' + str(args.ixx_1) \
-              + '_ixy_1_' + str(args.ixy_1) \
-              + '_ixx_2_' + str(args.ixx_2) \
-              + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '') \
-              + '_train_total_epochs_' + str(args.train_total_epochs)\
-              + '_confidence_threshold_' + str(args.confidence_threshold)\
-              + '_train_type_' + str(args.train_type) \
-              + '_loss_type_' + str(args.loss_type) \
-              + '_info_class_ratio_' + str(args.info_class_ratio)\
-              + '_h_split_' + str(args.h_split)
-                   
-# file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+exp_name = str(args.train_type) \
+           + '_' + str(args.dataset) \
+           + '_' + str(args.model) + str(args.layers) \
+           + '_L-' + str(args.loss_type) \
+           + ('_ModNum-' + str(args.local_module_num)) \
+           + ('_ixx1-' + str(args.ixx_1) + '_ixy1-' + str(args.ixy_1) + '_ixx2-' + str(args.ixx_2) + '_ixy2-' + str(args.ixy_2) if args.train_type == 'local' else '') \
+           + ('_InfoClassRatio-' + str(args.info_class_ratio) if args.loss_type == 'both' else '') \
+           + '_Epochs-' + str(args.train_total_epochs)
+
+# exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
 #               + '_' + str(args.model) + str(args.layers) \
 #               + '_K_' + str(args.local_module_num) \
@@ -181,14 +173,15 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + '_ixx_2_' + str(args.ixx_2) \
 #               + '_ixy_2_' + str(args.ixy_2) \
 #               + ('_cos_lr_' if args.cos_lr else '') \
-#               + '_joint_train_' + str(args.joint_train) \
-#               + '_layerwise_train_' + str(args.layerwise_train) \
-#               + '_locally_train_' + str(args.locally_train) \
-#               + '_train_total_epochs_' + str(args.train_total_epochs)   
-                      
-                          
+#               + '_train_total_epochs_' + str(args.train_total_epochs)\
+#               + '_confidence_threshold_' + str(args.confidence_threshold)\
+#               + '_train_type_' + str(args.train_type) \
+#               + '_loss_type_' + str(args.loss_type) \
+#               + '_info_class_ratio_' + str(args.info_class_ratio)\
+#               + '_h_split_' + str(args.h_split)
+                 
+                                            
 record_path = './logs/' + exp_name
-# record_path = './logs/' + file_exp_name
 
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
@@ -199,6 +192,15 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
+    
+    if args.dry_run:
+        print(f"Performing a dry run of {exp_name} with limited epochs...")
+        args.train_total_epochs = 5  # Set the number of epochs to 5 for dry run
+        training_configurations[args.model]['epochs'] = 5  # Set the number of epochs to 5 for dry run
+        
+        args.no_wandb_log = True  # Do not log to wandb for dry run
+        args.save_checkpoint = False  # Do not save checkpoints for dry run
+        args.print_freq = 10  # Set the print frequency to 1 for dry run
     
     if not args.no_wandb_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
@@ -399,14 +401,15 @@ def main():
         is_best = val_prec1 > best_prec1
         best_prec1 = max(val_prec1, best_prec1)
 
-        # save_checkpoint({
-        #     'epoch': epoch + 1,
-        #     'state_dict': model.state_dict(),
-        #     'best_acc': best_prec1,
-        #     'optimizer': optimizer.state_dict(),
-        #     'val_acc': val_acc,
-
-        # }, is_best, checkpoint=check_point)
+        if args.save_checkpoint:
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'best_acc': best_prec1,
+                'optimizer': optimizer.state_dict(),
+                'val_acc': val_acc,
+            }, is_best, checkpoint=check_point)
+            print('Checkpoint saved to ' + check_point)
         print('Best accuracy: ', best_prec1)
         np.savetxt(accuracy_file, np.array(val_acc))
 
@@ -471,10 +474,9 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
         batch_time.update(time.time() - end)
         end = time.time()
-
-        if (i+1) % args.print_freq == 0:
+        if (i+1) % args.print_freq == 0 or (i+1) == train_batches_num:
             # print(discriminate_weights)
-            fd = open(record_file, 'a+')
+            
             string = ('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
                       'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
@@ -484,12 +486,14 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
             print(string)
             # print(weights)
-            fd.write(string + '\n')
-            fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-            fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
-            fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
-            fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
-            fd.close()
+            if not args.dry_run:
+                fd = open(record_file, 'a+')
+                fd.write(string + '\n')
+                fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
+                fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+                fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+                fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
+                fd.close()
 
     # ave_top1 = [meter.ave for meter in top1]
     return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
@@ -546,7 +550,6 @@ def validate(val_loader, model, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-    fd = open(record_file, 'a+')
     string = ('Test: [{0}][{1}/{2}]\t'
               'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
               'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
@@ -554,12 +557,15 @@ def validate(val_loader, model, epoch):
         epoch, (i + 1), train_batches_num, batch_time=batch_time,
         loss=losses, top1=top1[-1]))
     print(string)
-    fd.write(string + '\n')
-    fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-    fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
-    fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
-    fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
-    fd.close()
+    if not args.dry_run:
+        fd = open(record_file, 'a+')
+        fd.write(string + '\n')
+        fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
+        fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+        fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+        fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
+        fd.close()
+        
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
