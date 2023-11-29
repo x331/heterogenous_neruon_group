@@ -55,7 +55,7 @@ class BasicBlock(nn.Module):
         return out
     
     
-class BasicBlock(nn.Module):
+class BasicBlock_h(nn.Module):
     expansion=1
     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
         super(BasicBlock, self).__init__()
