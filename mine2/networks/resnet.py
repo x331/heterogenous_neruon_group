@@ -127,7 +127,6 @@ class InfoProResNet(nn.Module):
         if self.h_split == -1:
             self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         else:
-            self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
             num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
             self.conv1a = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
             self.conv1b = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
@@ -261,13 +260,14 @@ class InfoProResNet(nn.Module):
             loss_per_exit = []
             pred_per_exit = []
 
+            x=0
             if self.h_split == -1:
                 x = self.conv1(img)
             else:
                 xa = self.conv1a(img)
                 xb = self.conv1a(img)
                 x = torch.cat((xa,xb),dim=0)
-            print(x.shape,self.conv1(img).shape)
+            print(x.shape)
             x = self.bn1(x)
             x = self.relu(x)
 
