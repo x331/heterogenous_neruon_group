@@ -399,7 +399,7 @@ class InfoProResNet(nn.Module):
             for _ in range(1, blocks):
                 layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
         else:   
-            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate,split=true,beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
+            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate,split=True,beginning=first_conv_groups,h_ratio=self.h_split_ratios[self._get_local_mod_pos(stage-1,0)]))
             self.inplanes = planes * block.expansion
             for b in range(1, blocks):
                 first_conv_groups = False
