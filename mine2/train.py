@@ -163,7 +163,7 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_train_type_' + str(args.train_type) \
               + '_loss_type_' + str(args.loss_type) \
               + '_info_class_ratio_' + str(args.info_class_ratio)\
-              + '_h_split_' + str(*args.h_split)
+              + '_h_split_' + str(args.h_split)
                    
 # file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
