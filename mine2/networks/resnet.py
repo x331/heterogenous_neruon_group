@@ -273,20 +273,67 @@ class InfoProResNet(nn.Module):
     def _image_restore(self, normalized_image):
         return normalized_image.mul(self.mask_train_std[:normalized_image.size(0)]) \
                + self.mask_train_mean[:normalized_image.size(0)]
+               
+    
+    def _get_local_mod_boundaries(self, stage):
+        boundaries = []
+        for item in self.infopro_config:
+            module_index, layer_index = item
+            if module_index == stage:
+                boundaries.append(layer_index)
+        return boundaries
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    # def _make_layer(self, block, planes, blocks, stride=1):
+    #     downsample = None
+    #     if stride != 1 or self.inplanes != planes * block.expansion:
+    #         downsample = nn.Sequential(
+    #             nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
+    #             nn.BatchNorm2d(planes * block.expansion)
+    #         )
+            
+    #     layers = []
+    #     layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
+    #     self.inplanes = planes * block.expansion
+    #     for _ in range(1, blocks):
+    #         layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
+
+    #     return nn.Sequential(*layers)
+    
+    
+    def _make_layer(self, block, planes, blocks, groups=1, stride=1, stage=None):
+
+        self.h_split != 1:
+            first_conv_groups = False
+            if (0 in self._get_local_mod_boundaries(stage-1) if stage == 1 else (self.layers[stage-2]-1) in self._get_local_mod_boundaries(stage-1)):
+                first_conv_groups = True
+
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion)
-            )
+            if self.h_split == -1:
+                downsample = nn.Sequential(
+                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
+                    nn.BatchNorm2d(planes * block.expansion)
+                )
+            else:
+                downsample = nn.Sequential(
+                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, groups=first_conv_groups, stride=stride, bias=False),
+                    nn.BatchNorm2d(planes * block.expansion)
+                )
             
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
-        self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
+        if self.h_split == -1:
+            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
+            self.inplanes = planes * block.expansion
+            for _ in range(1, blocks):
+                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate))
+        else:   
+            layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate, first_conv_groups=first_conv_groups, groups=groups))
+            self.inplanes = planes * block.expansion
+            for b in range(1, blocks):
+                first_conv_groups = groups
+                if (b-1) in self._get_local_mod_boundaries(stage):
+                    first_conv_groups = 1
+                layers.append(block(self.inplanes, planes, dropout_rate=self.dropout_rate, first_conv_groups=first_conv_groups, groups=groups))
 
         return nn.Sequential(*layers)
 
