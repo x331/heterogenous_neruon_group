@@ -160,7 +160,7 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
               + '_confidence_threshold_' + str(args.confidence_threshold)\
               + '_train_type_' + str(args.train_type) \
               + '_loss_type_' + str(args.loss_type) \
-              + '_infopro_classification_ratio_' + str(args.infopro_classification_ratio)
+              + '_infopro_classification_ratio_' + str(args.info_class_ratio)
                    
 # file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
