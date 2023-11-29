@@ -100,8 +100,8 @@ class InfoProResNet(nn.Module):
                  wide_list=(16, 16, 32, 64), dropout_rate=0,
                  aux_net_config='1c2f', local_loss_mode='contrast',
                  aux_net_widen=1, aux_net_feature_dim=128,
-                 joint_train=False,layerwise_train=False, locally_train=False,
-                 infopro_loss_train=False,  classification_loss_train=False, infopro_classification_loss_train=False, infopro_classification_ratio=False):
+                 train_type='locally',
+                 loss_type='class', info_class_ratio=.0):
         super(InfoProResNet, self).__init__()
 
         assert arch in ['resnet20','resnet32', 'resnet110'], "This repo supports resnet32 and resnet110 currently. " \
@@ -113,13 +113,9 @@ class InfoProResNet(nn.Module):
         self.class_num = class_num
         self.local_module_num = local_module_num
         self.layers = layers
-        self.joint_train = joint_train
-        self.layerwise_train = layerwise_train
-        self.locally_train = locally_train
-        self.infopro_loss_train = infopro_loss_train
-        self.classification_loss_train = classification_loss_train
-        self.infopro_classification_loss_train = infopro_classification_loss_train
-        self.infopro_classification_ratio = infopro_classification_ratio
+        self.train_type = train_type
+        self.loss_type = loss_type
+        self.info_class_ratio = info_class_ratio
         
 
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
@@ -142,14 +138,14 @@ class InfoProResNet(nn.Module):
 
         for item in self.infopro_config:
             module_index, layer_index = item
-            if self.infopro_loss_train or self.infopro_classification_loss_train:
+            if self.loss_type == 'info' or self.loss_type == 'both':
                 exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
                     '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
                 exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
                     '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
                     'loss_mode=local_loss_mode, class_num=class_num, '
                     'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
-            if self.classification_loss_train  or self.infopro_classification_loss_train:
+            if self.loss_type == 'class'  or self.loss_type == 'both':
                 exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
                     '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
                     'loss_mode=local_loss_mode, class_num=class_num, '
@@ -232,27 +228,28 @@ class InfoProResNet(nn.Module):
             if local_module_i <= self.local_module_num - 2:
                 if self.infopro_config[local_module_i][0] == stage_i \
                         and self.infopro_config[local_module_i][1] == layer_i:
-                    if not self.joint_train and not self.layerwise_train and self.locally_train:
-                        if self.infopro_loss_train or self.infopro_classification_loss_train or self.classification_loss_train:
+                    if self.train_type == 'local':
+                        if self.loss_type in ['class','info','both']:
                             infoproloss = 0 
                             classloss = 0
                             preds = 0
                             loss = 0
-                            if not self.classification_loss_train:
+                            if self.loss_type != 'class':
                                 ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                 ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                 ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                 loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                 loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                            if not self.infopro_loss_train:
+                            if self.loss_type != 'info':
                                 classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            if self.classification_loss_train:
+                                
+                            if self.loss_type == 'class':
                                 loss = classloss
-                            elif self.infopro_loss_train:
+                            elif self.loss_type == 'info':
                                 loss = infoproloss
-                            elif self.infopro_classification_loss_train:
-                                loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
+                            elif self.loss_type == 'both':
+                                loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
                                 
                             if self.training :    
                                 loss.backward()        
@@ -264,7 +261,7 @@ class InfoProResNet(nn.Module):
                         loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
                         
-                        if self.layerwise_train:
+                        if self.train_type = 'layer':
                             # means we reached the classifier of the target module
                             if target_module == local_module_i:
                                 pred_per_exit.append(preds)
@@ -292,33 +289,31 @@ class InfoProResNet(nn.Module):
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
      
-                            if not self.joint_train and not self.layerwise_train and self.locally_train:
-                                if self.infopro_loss_train or self.infopro_classification_loss_train or self.classification_loss_train:
+                            if self.train_type == 'local'
+                                if self.loss_type in ['class','info','both']::
                                     infoproloss = 0 
                                     classloss = 0
                                     preds = 0
                                     loss = 0
-                                    if not self.classification_loss_train:
+                                    if self.loss_type != 'class':
                                         ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
                                         ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
                                         ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
                                         loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
                                         loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                         infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                                    if not self.infopro_loss_train:
+                                    if self.loss_type != 'info':
                                         classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                    if self.classification_loss_train:
-                                        # print('aaaa')
+                                        
+                                    if self.loss_type == 'class':
                                         loss = classloss
-                                    elif self.infopro_loss_train:
+                                    elif self.loss_type == 'info':
                                         loss = infoproloss
-                                        # print('bbb')
-                                    elif self.infopro_classification_loss_train:
-                                        loss =  infoproloss*(self.infopro_classification_ratio)+classloss*(1-self.infopro_classification_ratio)
-                                        # print('cccc')
+                                    elif self.loss_type == 'both':
+                                        loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
+                                        
                                     if self.training : 
                                         loss.backward()     
-                                        # print('ddd')   
                                     loss_per_exit.append(loss)
                                     pred_per_exit.append(preds)
                                     x = x.detach()
@@ -329,7 +324,7 @@ class InfoProResNet(nn.Module):
                                 loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
                                 
-                                if self.layerwise_train:
+                                if self.train_type = 'layer':
                                     # means we reached the classifier of the target module
                                     if target_module == local_module_i:
                                         pred_per_exit.append(preds)
@@ -353,7 +348,7 @@ class InfoProResNet(nn.Module):
             pred_per_exit.append(logits)
             fc_loss = self.criterion_ce(logits, target)
             loss_per_exit.append(fc_loss)
-            if not self.joint_train and not self.layerwise_train and self.locally_train:
+            if self.train_type == 'local':
                 loss = fc_loss
                 if self.training:
                     loss.backward()            
