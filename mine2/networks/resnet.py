@@ -39,8 +39,8 @@ class BasicBlock(nn.Module):
             self.conv2 = conv3x3(planes, planes)
         else:
             if beginning:
-                out_chan1 = math.floor(plances*h_ratio)
-                out_chan2 = plances - out_chan1
+                out_chan1 = math.floor(planes*h_ratio)
+                out_chan2 = planes - out_chan1
                 self.conv1a = conv3x3(inplanes, out_chan1, stride)
                 self.conv1a = conv3x3(inplanes, out_chan2, stride) 
             else:
@@ -123,8 +123,8 @@ class BasicBlock(nn.Module):
 #     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
 #         super(BasicBlock_h, self).__init__()
 #         if beginning:
-#             out_chan1 = math.floor(plances*h_ratio)
-#             out_chan2 = plances - out_chan1
+#             out_chan1 = math.floor(planes*h_ratio)
+#             out_chan2 = planes - out_chan1
 #             self.conv1a = conv3x3(inplanes, out_chan1, stride)
 #             self.conv1a = conv3x3(inplanes, out_chan2, stride) 
 #         else:
