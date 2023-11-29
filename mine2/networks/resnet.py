@@ -58,17 +58,28 @@ class BasicBlock(nn.Module):
 class BasicBlock_h(nn.Module):
     expansion=1
     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
-        super(BasicBlock, self).__init__()
+        super(BasicBlock_h, self).__init__()
         if beginning:
-            self.conv1 = conv3x3(inplanes, planes, stride)
+            out_chan1 = math.floor(plances*h_ratio)
+            out_chan2 = plances - out_chan1
+            self.conv1a = conv3x3(inplanes, out_chan1, stride)
+            self.conv1a = conv3x3(inplanes, out_chan2, stride) 
         else:
-            num_chan = inplanes
-            self.conv1a = conv3x3(inplanes, planes, stride)
-            self.conv1a = conv3x3(inplanes, planes, stride)
-
+            in_chan1 = math.floor(inplanes*h_ratio)
+            in_chan2 = inplanes - in_chan1
+            out_chan1 = math.floor(planes*h_ratio)
+            out_chan1 = inplanes - out_chan1
+            self.conv1a = conv3x3(in_chan1, out_chan1, stride)
+            self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
+
+        num_chan1 = math.floor(planes*h_ratio)
+        num_chan2 = inplanes - out_chan1
+        self.conv2a = conv3x3(num_chan1, num_chan1, stride)
+        self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
+        
         self.bn2 = nn.BatchNorm2d(planes)
         self.downsample = downsample
         self.stride = stride
@@ -77,16 +88,27 @@ class BasicBlock_h(nn.Module):
     def forward(self, x):
         residual = x
         
-        out = self.conv1(x)
+        xa = self.conv1a(img)
+        xb = self.conv1b(img)
+        out = torch.cat((xa,xb),dim=1)
+        
         out = self.bn1(out)
         out = self.relu(out)
         
         out = self.dropout(out)
-        out = self.conv2(out)
+        
+        xa = self.conv2a(out)
+        xb = self.conv2b(out)
+        out = torch.cat((xa,xb),dim=1)
+        
         out = self.bn2(out)
         
         if self.downsample is not None:
+            # xa = self.downsample[0](x)
+            # xb = self.downsample[1](x)
+            # residual = torch.cat(xa,xb,dim=1)
             residual = self.downsample(x)
+
             
         out += residual
         out = self.relu(out)
@@ -165,9 +187,10 @@ class InfoProResNet(nn.Module):
         if self.h_split == -1:
             self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=3, stride=1, padding=1, bias=False)
         else:
-            num_chan = math.floor(self.inplanes*self.h_split_ratios[0])
-            self.conv1a = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
-            self.conv1b = nn.Conv2d(3, num_chan, kernel_size=3, stride=1, padding=1, bias=False)
+            num_chan1 = math.floor(self.inplanes*self.h_split_ratios[0])
+            num_chan2 = self.inplanes-num_chan1
+            self.conv1a = nn.Conv2d(3, num_chan1, kernel_size=3, stride=1, padding=1, bias=False)
+            self.conv1b = nn.Conv2d(3, num_chan2, kernel_size=3, stride=1, padding=1, bias=False)
 
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
@@ -258,8 +281,7 @@ class InfoProResNet(nn.Module):
                 nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion)
             )
-            print(block, planes, blocks, stride, stride, self.inplanes , planes * block.expansion)
-
+            
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
         self.inplanes = planes * block.expansion
@@ -273,8 +295,8 @@ class InfoProResNet(nn.Module):
             x = self.conv1(img)
         else:
             xa = self.conv1a(img)
-            xb = self.conv1a(img)
-            x = torch.cat((xa,xb),dim=0)
+            xb = self.conv1b(img)
+            x = torch.cat((xa,xb),dim=1)
         x = self.bn1(x)
         x = self.relu(x)
 
@@ -304,7 +326,7 @@ class InfoProResNet(nn.Module):
                 x = self.conv1(img)
             else:
                 xa = self.conv1a(img)
-                xb = self.conv1a(img)
+                xb = self.conv1b(img)
                 x = torch.cat((xa,xb),dim=1)
             x = self.bn1(x)
             x = self.relu(x)
