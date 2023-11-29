@@ -42,7 +42,7 @@ class BasicBlock(nn.Module):
             if beginning:
                 out_chan1 = math.floor(planes*h_ratio)
                 out_chan2 = planes - out_chan1
-                print(1,out_chan1,out_chan2)
+                # print(1,out_chan1,out_chan2)
                 self.conv1a = conv3x3(inplanes, out_chan1, stride)
                 self.conv1a = conv3x3(inplanes, out_chan2, stride) 
             else:
@@ -50,17 +50,17 @@ class BasicBlock(nn.Module):
                 in_chan2 = inplanes - in_chan1
                 out_chan1 = math.floor(planes*h_ratio)
                 out_chan2 = planes - out_chan1
-                print(2,out_chan1,out_chan2)
+                # print(2,out_chan1,out_chan2)
                 self.conv1a = conv3x3(in_chan1, out_chan1, stride)
                 self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
             num_chan1 = math.floor(planes*h_ratio)
             num_chan2 = planes - num_chan1
-            print(4,num_chan1,num_chan2)
+            # print(4,num_chan1,num_chan2)
             self.conv2a = conv3x3(num_chan1, num_chan1, stride)
             self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
             if  downsample != None:
                 if self.beginning:
-                    print(downsample,self.expansion)
+                    # print(downsample,self.expansion)
                     self.downsample = nn.Sequential(
                         nn.Conv2d(inplanes, planes * downsample, kernel_size=1, stride=stride, bias=False),
                         nn.BatchNorm2d(planes * downsample)
@@ -70,7 +70,7 @@ class BasicBlock(nn.Module):
                     in_chan2 = inplanes - in_chan1
                     out_chan1 = math.floor(planes*h_ratio)
                     out_chan2 = planes - out_chan1 
-                    print(3,out_chan1,out_chan2,flush=True)
+                    # print(3,out_chan1,out_chan2,flush=True)
                     self.downsample = [nn.Sequential(
                             nn.Conv2d(in_chan1, out_chan1 * downsample, kernel_size=1, stride=stride, bias=False),
                             nn.BatchNorm2d(out_chan1 * downsample)
@@ -318,7 +318,7 @@ class InfoProResNet(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                print( m.kernel_size[0] , m.kernel_size[1] , m.out_channels,m)
+                # print( m.kernel_size[0] , m.kernel_size[1] , m.out_channels,m)
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
