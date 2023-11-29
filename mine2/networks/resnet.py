@@ -163,7 +163,7 @@ class InfoProResNet(nn.Module):
             for i,item in enumerate(self.infopro_config):
                 for group in ['a','b']:
                     module_index, layer_index = item
-                    chan = floor(wide_list[module_index]*self.h_split_ratios[i])
+                    chan = math.floor(wide_list[module_index]*self.h_split_ratios[i])
                     if group== 'b':
                         chan = wide_list[module_index]-chan
                         
