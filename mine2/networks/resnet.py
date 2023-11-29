@@ -56,6 +56,7 @@ class BasicBlock(nn.Module):
             self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
             if  downsample != None:
                 if self.beginning:
+                    print(downsample,self.expansion)
                     self.downsample = nn.Sequential(
                         nn.Conv2d(inplanes, planes * downsample, kernel_size=1, stride=stride, bias=False),
                         nn.BatchNorm2d(planes * downsample)
@@ -312,6 +313,7 @@ class InfoProResNet(nn.Module):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                print( m.kernel_size[0] , m.kernel_size[1] , m.out_channels,m)
                 m.weight.data.normal_(0, math.sqrt(2. / n))
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
