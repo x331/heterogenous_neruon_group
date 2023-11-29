@@ -47,13 +47,32 @@ class BasicBlock(nn.Module):
                 in_chan1 = math.floor(inplanes*h_ratio)
                 in_chan2 = inplanes - in_chan1
                 out_chan1 = math.floor(planes*h_ratio)
-                out_chan1 = inplanes - out_chan1
+                out_chan2 = inplanes - out_chan1
                 self.conv1a = conv3x3(in_chan1, out_chan1, stride)
                 self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
             num_chan1 = math.floor(planes*h_ratio)
             num_chan2 = inplanes - out_chan1
             self.conv2a = conv3x3(num_chan1, num_chan1, stride)
-            self.conv2b = conv3x3(num_chan2, num_chan2, stride)              
+            self.conv2b = conv3x3(num_chan2, num_chan2, stride)    
+            if  downsample != None:
+                if self.beginning:
+                    self.downsample = nn.Sequential(
+                        nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
+                        nn.BatchNorm2d(planes * block.expansion)
+                    )
+                else:
+                    in_chan1 = math.floor(inplanes*h_ratio)
+                    in_chan2 = inplanes - in_chan1
+                    out_chan1 = math.floor(planes*h_ratio)
+                    out_chan2 = inplanes - out_chan1       
+                    self.downsample = [self.downsample = nn.Sequential(
+                            nn.Conv2d(in_chan1, out_chan1 * downsample, kernel_size=1, stride=stride, bias=False),
+                            nn.BatchNorm2d(out_chan1 * downsample)
+                        ),
+                        self.downsample = nn.Sequential(
+                            nn.Conv2d(in_chan2, out_chan2 * downsample, kernel_size=1, stride=stride, bias=False),
+                            nn.BatchNorm2d(out_chan2 * downsample)
+                        )] 
 
     def forward(self, x):
         residual = x
@@ -79,14 +98,18 @@ class BasicBlock(nn.Module):
             
         out = self.bn2(out)
 
+        residual = 0
         if self.downsample is not None:
             if not self.split:
                 residual = self.downsample(x)
             else:
-                # xa = self.downsample[0](x)
-                # xb = self.downsample[1](x)
-                # residual = torch.cat(xa,xb,dim=1)
-                residual = self.downsample(x)
+                if self.beginning:
+                    residual = self.downsample(x)
+                else:
+                    # xa = self.downsample[0](x)
+                    # xb = self.downsample[1](x)
+                    # residual = torch.cat(xa,xb,dim=1)
+                    residual = self.downsample(x)
                 
 
         out += residual
@@ -108,7 +131,7 @@ class BasicBlock(nn.Module):
 #             in_chan1 = math.floor(inplanes*h_ratio)
 #             in_chan2 = inplanes - in_chan1
 #             out_chan1 = math.floor(planes*h_ratio)
-#             out_chan1 = inplanes - out_chan1
+#             out_chan2 = inplanes - out_chan1
 #             self.conv1a = conv3x3(in_chan1, out_chan1, stride)
 #             self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
 #         self.bn1 = nn.BatchNorm2d(planes)
@@ -363,11 +386,11 @@ class InfoProResNet(nn.Module):
                     nn.BatchNorm2d(planes * block.expansion)
                 )
             else:
-                self._get_local_mod_boundaries(stage-1) 
-                downsample = nn.Sequential(
-                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
-                    nn.BatchNorm2d(planes * block.expansion)
-                )
+                # downsample = nn.Sequential(
+                #     nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
+                #     nn.BatchNorm2d(planes * block.expansion)
+                # )
+                downsample = block.expansion
             
         layers = []
         if self.h_split == -1:
