@@ -47,7 +47,7 @@ class BasicBlock(nn.Module):
                 in_chan1 = math.floor(inplanes*h_ratio)
                 in_chan2 = inplanes - in_chan1
                 out_chan1 = math.floor(planes*h_ratio)
-                out_chan2 = inplanes - out_chan1
+                out_chan2 = planes - out_chan1
                 self.conv1a = conv3x3(in_chan1, out_chan1, stride)
                 self.conv1a = conv3x3(in_chan2, out_chan2, stride)    
             num_chan1 = math.floor(planes*h_ratio)
@@ -65,7 +65,7 @@ class BasicBlock(nn.Module):
                     in_chan1 = math.floor(inplanes*h_ratio)
                     in_chan2 = inplanes - in_chan1
                     out_chan1 = math.floor(planes*h_ratio)
-                    out_chan2 = inplanes - out_chan1       
+                    out_chan2 = planes - out_chan1 
                     self.downsample = [nn.Sequential(
                             nn.Conv2d(in_chan1, out_chan1 * downsample, kernel_size=1, stride=stride, bias=False),
                             nn.BatchNorm2d(out_chan1 * downsample)
