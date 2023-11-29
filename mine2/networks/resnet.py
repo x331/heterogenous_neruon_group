@@ -23,9 +23,15 @@ def conv3x3(in_planes, out_planes, stride=1):
 class BasicBlock(nn.Module):
     expansion=1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,beginning=False,h_ratio=1):
         super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
+        if beginning:
+            self.conv1 = conv3x3(inplanes, planes, stride)
+        else:
+            num_chan = inplanes
+            self.conv1a = conv3x3(inplanes, planes, stride)
+            self.conv1a = conv3x3(inplanes, planes, stride)
+
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.conv2 = conv3x3(planes, planes)
@@ -220,6 +226,7 @@ class InfoProResNet(nn.Module):
                 nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion)
             )
+            print(block, planes, blocks, stride)
 
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
