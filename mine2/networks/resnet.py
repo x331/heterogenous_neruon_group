@@ -266,6 +266,7 @@ class InfoProResNet(nn.Module):
                 xa = self.conv1a(img)
                 xb = self.conv1a(img)
                 x = torch.cat((xa,xb),dim=0)
+            print(x.shape,self.conv1(img).shape)
             x = self.bn1(x)
             x = self.relu(x)
 
