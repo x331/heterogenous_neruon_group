@@ -258,7 +258,7 @@ class InfoProResNet(nn.Module):
                 nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 nn.BatchNorm2d(planes * block.expansion)
             )
-            print(block, planes, blocks, stride)
+            print(block, planes, blocks, stride, stride, self.inplanes , planes * block.expansion)
 
         layers = []
         layers.append(block(self.inplanes, planes, stride, downsample, dropout_rate=self.dropout_rate))
