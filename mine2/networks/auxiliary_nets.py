@@ -153,9 +153,9 @@ class AuxClassifier(nn.Module):
                     nn.Linear(int(feature_dim * widen), self.fc_out_channels)
                 )
             else:
-                num_chan2 = 64 if inplane>31 else 32
+                num_chan2 = 64 if inplanes>31 else 32
                 self.head = nn.Sequential(
-                    nn.Conv2d(inplane, int(num_chan2 * widen), kernel_size=3, stride=1, padding=1, bias=False),
+                    nn.Conv2d(inplanes, int(num_chan2 * widen), kernel_size=3, stride=1, padding=1, bias=False),
                     nn.BatchNorm2d(int(num_chan2 * widen)),
                     nn.ReLU(),
                     nn.AdaptiveAvgPool2d((1, 1)),
