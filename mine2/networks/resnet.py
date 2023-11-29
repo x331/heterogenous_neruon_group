@@ -302,7 +302,7 @@ class InfoProResNet(nn.Module):
     
     def _make_layer(self, block, planes, blocks, groups=1, stride=1, stage=None):
 
-        self.h_split != 1:
+        if self.h_split != 1:
             first_conv_groups = False
             if (0 in self._get_local_mod_boundaries(stage-1) if stage == 1 else (self.layers[stage-2]-1) in self._get_local_mod_boundaries(stage-1)):
                 first_conv_groups = True
