@@ -289,8 +289,8 @@ class InfoProResNet(nn.Module):
                         if self.infopro_config[local_module_i][0] == stage_i \
                                 and self.infopro_config[local_module_i][1] == layer_i:
      
-                            if self.train_type == 'local'
-                                if self.loss_type in ['class','info','both']::
+                            if self.train_type == 'local':
+                                if self.loss_type in ['class','info','both']:
                                     infoproloss = 0 
                                     classloss = 0
                                     preds = 0
