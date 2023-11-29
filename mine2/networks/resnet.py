@@ -234,9 +234,9 @@ class InfoProResNet(nn.Module):
 
         self.bn1 = nn.BatchNorm2d(self.inplanes)
         self.relu = nn.ReLU(inplace=True)
-        self.layer1 = self._make_layer(block, wide_list[1], layers[0])
-        self.layer2 = self._make_layer(block, wide_list[2], layers[1], stride=2)
-        self.layer3 = self._make_layer(block, wide_list[3], layers[2], stride=2)
+        self.layer1 = self._make_layer(block, wide_list[1], layers[0],stage=1)
+        self.layer2 = self._make_layer(block, wide_list[2], layers[1], stride=2,stage=2)
+        self.layer3 = self._make_layer(block, wide_list[3], layers[2], stride=2,stage=3)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(self.feature_num, self.class_num)
         
@@ -356,7 +356,7 @@ class InfoProResNet(nn.Module):
                 )
             else:
                 downsample = nn.Sequential(
-                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, groups=first_conv_groups, stride=stride, bias=False),
+                    nn.Conv2d(self.inplanes, planes * block.expansion, kernel_size=1, groups=first_conv_groups, stride=stride, bias=False,split=true,beginning=,h_ratio=self.h_split_ratios),
                     nn.BatchNorm2d(planes * block.expansion)
                 )
             
