@@ -144,7 +144,7 @@ class InfoProResNet(nn.Module):
             raise NotImplementedError
         
         
-        if h_split =- -1:
+        if h_split == -1:
             for item in self.infopro_config:
                 module_index, layer_index = item
                 if self.loss_type == 'info' or self.loss_type == 'both':
