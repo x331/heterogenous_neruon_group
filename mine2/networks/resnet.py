@@ -23,7 +23,7 @@ def conv3x3(in_planes, out_planes, stride=1):
 class BasicBlock(nn.Module):
     expansion=1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False beginning=False,h_ratio=1):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False, beginning=False,h_ratio=.5):
         super(BasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
