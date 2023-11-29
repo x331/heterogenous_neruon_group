@@ -261,7 +261,7 @@ class InfoProResNet(nn.Module):
                         loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                         loss_per_exit.append(loss_ixy)
                         
-                        if self.train_type = 'layer':
+                        if self.train_type == 'layer':
                             # means we reached the classifier of the target module
                             if target_module == local_module_i:
                                 pred_per_exit.append(preds)
@@ -324,7 +324,7 @@ class InfoProResNet(nn.Module):
                                 loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                 loss_per_exit.append(loss_ixy)
                                 
-                                if self.train_type = 'layer':
+                                if self.train_type == 'layer':
                                     # means we reached the classifier of the target module
                                     if target_module == local_module_i:
                                         pred_per_exit.append(preds)
