@@ -465,7 +465,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), x.size(0)) 
             
-        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold)
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold, )
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
             meter.update(exit_num[idx].item()/x.size(0)*100, x.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
@@ -671,36 +671,72 @@ def accuracy_all_exits(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
+# def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
+#     """Computes the precision@k for the specified values of k"""
+#     maxk = max(topk)
+#     batch_size = target.size(0)
+#     output = torch.stack(output).detach()
+
+#     _, pred = output.topk(maxk, 2, True, True)
+    
+#     prob = torch.softmax(output,dim=2)
+#     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
+    
+#     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+#     correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
+#     prob = torch.softmax(output,dim=2)
+#     p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
+#     p = p+1
+#     e = p>threshold
+#     exits = torch.zeros(p.shape[0],1,device='cpu')
+#     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+#     for m in range(p.shape[0]):
+#         print(f'intotal: {p[m].shape} before + 1:{((p >= 0) & (p[m] < 1)).sum().item()} in 0-1')
+#         exits[m] = e[m].sum()
+#     for m in range(p.shape[0]):
+#         if exits[m] != 0:
+#             exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+#             sum = exit_preds.float().sum()
+#             avg =  sum/exit_preds.shape[0]*100.0
+#             exits_acc[m] = avg
+
+#     return exits, exits_acc
+
+def accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=.7, device=device):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
+
     output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 2, True, True)
-    
-    prob = torch.softmax(output,dim=2)
-    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
-    
-    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    prob = torch.softmax(output, dim=2)
+    # p = (1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2, keepdim=True)
+
+    pred = pred.reshape(pred.shape[0], pred.shape[2], pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    
-    prob = torch.softmax(output,dim=2)
-    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
-    p = p+1
-    e = p>threshold
-    exits = torch.zeros(p.shape[0],1,device='cpu')
-    exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+
+    prob = torch.softmax(output, dim=2)
+    p = ((1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2))
+    if device is not None:
+        p = p.to(device)  # Move p to the specified device
+    # p = p + 1
+    e = p > threshold
+
+    exits = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
+    exits_acc = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
+
     for m in range(p.shape[0]):
         exits[m] = e[m].sum()
-    for m in range(p.shape[0]):
         if exits[m] != 0:
-            exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+            exit_preds = correct[m, :1][e[m].reshape(1, e.shape[1])]
             sum = exit_preds.float().sum()
-            avg =  sum/exit_preds.shape[0]*100.0
+            avg = sum / exit_preds.shape[0] * 100.0
             exits_acc[m] = avg
 
     return exits, exits_acc
+
 
 if __name__ == '__main__':
     main()
