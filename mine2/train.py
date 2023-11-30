@@ -17,8 +17,11 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 import networks.resnet
-
+from networks.resnet import BasicBlock
 from utils  import early_exit_joint_loss
+
+from collections import defaultdict
+
 
 parser = argparse.ArgumentParser(description='InfoPro-PyTorch')
 parser.add_argument('--dataset', default='cifar10', type=str,
@@ -190,6 +193,60 @@ check_point = os.path.join(record_path, args.checkpoint)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+activations = defaultdict(list)
+
+def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
+    counter = [0]  # Use a list for mutable integer
+
+    def hook(model, input, output):
+        if model.training:
+            # Detach and convert to float16 to save memory
+            activation = output.detach().to(torch.float16)
+
+            if activations[name] is None:
+                activations[name] = [activation]  # Store as a list of tensors
+            else:
+                activations[name].append(activation)
+
+            # Transfer to CPU every 16 batches
+            counter[0] += 1
+            if counter[0] % transfer_to_cpu_batch == 0:
+                activations[name] = [tensor.to('cpu', non_blocking=True) for tensor in activations[name]]
+                
+    def hook_A100(model, input, output):
+        if model.training:
+            # Detach and convert to float16 to save memory
+            activation = output.detach().to(torch.float16)
+
+            if activations[name] is None:
+                activations[name] = [activation]  # Store as a list of tensors
+            else:
+                activations[name].append(activation)
+
+    if GPU_memory < 40:
+        return hook
+    else:
+        return hook_A100
+
+
+# def save_activation(name):
+#     def hook(model, input, output):
+#         # Check if the model is in training mode
+#         if model.training:
+#             # Detach and move the output to CPU
+#             activation = output.detach().cpu()
+#             print(f"Saving activation of {name} with shape {activation.shape}")
+#             # Handle the first batch separately
+#             if activations[name] is None:
+#                 activations[name] = activation
+#             else:
+#                 # Ensure that activations[name] is a Tensor before concatenating
+#                 if isinstance(activations[name], torch.Tensor):
+#                     activations[name] = torch.cat((activations[name], activation), dim=0)
+#                 else:
+#                     raise TypeError(f"Expected activations['{name}'] to be a Tensor, but got {type(activations[name])}")
+#     return hook
+
 
 def main():
     
@@ -350,6 +407,30 @@ def main():
         curr_module = -1
         epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
     
+    
+    def register_hooks_for_sequential(module, parent_name=''):
+        for name, submodule in module.named_children():
+            # Construct the full name of the submodule
+            module_full_name = f"{parent_name}.{name}" if parent_name else name
+
+            if isinstance(submodule, nn.Sequential):
+                # If the submodule is a Sequential container, iterate its children
+                for sub_name, sub_module in submodule.named_children():
+                    if isinstance(sub_module, BasicBlock):
+                        # Register a hook if the child is a BasicBlock
+                        block_full_name = f"{module_full_name}.{sub_name}"
+                        print(f"Registering hook to: {block_full_name}")
+                        sub_module.register_forward_hook(save_activation(block_full_name))
+
+            # Recursively apply this function to all submodules
+            # This is to handle nested Sequential containers
+            register_hooks_for_sequential(submodule, module_full_name)
+
+    # Call this function with your model
+    register_hooks_for_sequential(model)
+
+        
+        
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
         if args.train_type == 'layer':  
             adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
@@ -360,9 +441,11 @@ def main():
 
         # train for one epoch
         if args.train_type == 'layer':
-            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch)
+            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict = train(train_loader, model, optimizer, epoch)
+        
+        
         
         train_prec1 = train_prec_lst[-1]
         
@@ -414,6 +497,26 @@ def main():
         np.savetxt(accuracy_file, np.array(val_acc))
 
 
+
+
+# def estimate_memory_usage(tensor):
+#     """
+#     Estimate the memory usage of a tensor in bytes.
+#     """
+#     # Get the number of elements in the tensor
+#     num_elements = tensor.numel()
+
+#     # Estimate the size of each element in bytes
+#     element_size = tensor.element_size()
+
+#     # Total memory usage in bytes
+#     memory_usage = num_elements * element_size
+#     return memory_usage
+
+# TODO: Implement this function
+def per_layer_LS_calc(activation):
+    return 1
+
 def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
     batch_time = AverageMeter()
@@ -427,10 +530,11 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
 
     train_batches_num = len(train_loader)
-
+    
     # switch to train mode
     model.train()
-
+    activations.clear()
+    
     end = time.time()
     for i, (x, target) in enumerate(train_loader):
         target = target.to(device)
@@ -494,9 +598,35 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                 fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
                 fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
                 fd.close()
+                
+    # After training loop
+    
+    LS_dict = dict()
+    
+    activation_keys = list(activations.keys())
+    for name in activation_keys:
+        if activations[name]:
+            activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
+            activations[name] = torch.cat(activations[name], dim=0)
+            LS_dict[name] = per_layer_LS_calc(activations[name])
+            del activations[name]
 
+    # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
+    # print(f"Total memory usage by activations: {total_memory / (1024 ** 2):.2f} MB")
+    
+    activations.clear()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print(f'activation cleared')
+    
+    
     # ave_top1 = [meter.ave for meter in top1]
-    return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
+    train_loss = losses.ave
+    train_loss_lst = [meter.ave for meter in per_exit_loss_meter]
+    train_prec_lst= [meter.ave for meter in top1],
+    train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter],
+    train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
+    return train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict
 
 
 def validate(val_loader, model, epoch):
