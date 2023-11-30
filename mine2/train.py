@@ -201,7 +201,8 @@ def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
     def hook(model, input, output):
         if model.training:
             # Detach and convert to float16 to save memory
-            activation = output.detach().to(torch.float16)
+            activation = output.detach().view(output.size(0), -1).to(torch.float16)
+            # print(activation.shape)
 
             if activations[name] is None:
                 activations[name] = [activation]  # Store as a list of tensors
@@ -216,7 +217,7 @@ def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
     def hook_A100(model, input, output):
         if model.training:
             # Detach and convert to float16 to save memory
-            activation = output.detach().to(torch.float16)
+            activation = output.detach().view(output.size(0), -1).to(torch.float16)
 
             if activations[name] is None:
                 activations[name] = [activation]  # Store as a list of tensors
@@ -514,7 +515,30 @@ def main():
 #     return memory_usage
 
 # TODO: Implement this function
-def per_layer_LS_calc(activation):
+def per_layer_LS_calc(activation, target_epoch, class_num):
+    print(activation.shape, target_epoch.shape)
+    LS_lst = []
+    for i in range(class_num):
+        activation_class_i = activation[(target_epoch == i)]
+        activation_class_i = activation_class_i.view(activation_class_i.shape[0], 1, -1)
+        activation_not_i = activation[(target_epoch != i)]
+        activation_not_i = activation_not_i.view(1, activation_not_i.shape[0], -1)
+        print(activation_class_i.shape)
+        print(activation_not_i.shape)
+        m_i = (activation_class_i - activation_not_i).sum(dim=0)
+        print(m_i.shape)
+
+        L2_m = torch.norm(m_i, p=2)
+
+        print(L2_m)
+        exit()
+        w = m_i / L2_m
+        LS = w.T @ m_i
+        LS = LS @ LS.T
+        LS_lst.append(LS)
+    return np.mean(LS_lst)
+    
+    
     return 1
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
@@ -525,8 +549,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
-
-
+    class_num = len(train_loader.dataset.classes)
 
 
     train_batches_num = len(train_loader)
@@ -534,10 +557,13 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     # switch to train mode
     model.train()
     activations.clear()
+    target_lst = []
     
     end = time.time()
     for i, (x, target) in enumerate(train_loader):
         target = target.to(device)
+        target_lst.append(target)
+        
         x = x.to(device)
 
         optimizer.zero_grad()
@@ -602,13 +628,14 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     # After training loop
     
     LS_dict = dict()
+    target_epoch = torch.cat(target_lst, dim=0)
     
     activation_keys = list(activations.keys())
     for name in activation_keys:
         if activations[name]:
             activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
             activations[name] = torch.cat(activations[name], dim=0)
-            LS_dict[name] = per_layer_LS_calc(activations[name])
+            LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
             del activations[name]
 
     # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
