@@ -25,7 +25,7 @@ class BasicBlock(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False, beginning=False,h_ratio=.5):
         super(BasicBlock, self).__init__()
-        print('hi')
+        print('a BasicBlock is created')
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.bn2 = nn.BatchNorm2d(planes)

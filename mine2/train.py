@@ -17,8 +17,11 @@ import torchvision.datasets as datasets
 import torchvision.transforms as transforms
 
 import networks.resnet
-
+from networks.resnet import BasicBlock
 from utils  import early_exit_joint_loss
+
+from collections import defaultdict
+
 
 parser = argparse.ArgumentParser(description='InfoPro-PyTorch')
 parser.add_argument('--dataset', default='cifar10', type=str,
@@ -46,8 +49,6 @@ parser.add_argument('--name', default='', type=str,
                     help='name of experiment')
 parser.add_argument('--no', default='1', type=str,
                     help='index of the experiment (for recording convenience)')
-parser.add_argument('--print-freq', '-p', default=1, type=int,
-                    help='print frequency (default: 10)')
 
 
 # Cosine learning rate
@@ -120,6 +121,14 @@ parser.add_argument('--train_type', default='class', type=str,
                     help='train_type: [joint|local|layer]')
 parser.add_argument('--h_split', default=-1, type=int,
                     help='horizontal group split ration config')
+parser.add_argument('--dry-run', dest='dry_run', action='store_true',
+                    help='perform a dry run of the model without actual training')
+parser.set_defaults(dry_run=False)
+parser.add_argument('--save-checkpoint', dest='save_checkpoint', action='store_true',
+                    help='save the training checkpoints')
+parser.set_defaults(save_checkpoint=False)
+parser.add_argument('--print-freq', default=1, type=int,
+                    help='print frequency during training (default: 1)')
 
 
 
@@ -142,30 +151,16 @@ training_configurations = {
     }
 }
 
-exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
-              + str(args.dataset) \
-              + '_' + str(args.model) + str(args.layers) \
-              + '_K_' + str(args.local_module_num) \
-              + '_' + str(args.name) \
-              + '/' \
-              + 'no_' + str(args.no) \
-              + '_aux_net_config_' + str(args.aux_net_config) \
-              + '_local_loss_mode_' + str(args.local_loss_mode) \
-              + '_aux_net_widen_' + str(args.aux_net_widen) \
-              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
-              + '_ixx_1_' + str(args.ixx_1) \
-              + '_ixy_1_' + str(args.ixy_1) \
-              + '_ixx_2_' + str(args.ixx_2) \
-              + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '') \
-              + '_train_total_epochs_' + str(args.train_total_epochs)\
-              + '_confidence_threshold_' + str(args.confidence_threshold)\
-              + '_train_type_' + str(args.train_type) \
-              + '_loss_type_' + str(args.loss_type) \
-              + '_info_class_ratio_' + str(args.info_class_ratio)\
-              + '_h_split_' + str(args.h_split)
-                   
-# file_exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+exp_name = str(args.train_type) \
+           + '_' + str(args.dataset) \
+           + '_' + str(args.model) + str(args.layers) \
+           + '_L-' + str(args.loss_type) \
+           + ('_ModNum-' + str(args.local_module_num)) \
+           + ('_ixx1-' + str(args.ixx_1) + '_ixy1-' + str(args.ixy_1) + '_ixx2-' + str(args.ixx_2) + '_ixy2-' + str(args.ixy_2) if args.train_type == 'local' else '') \
+           + ('_InfoClassRatio-' + str(args.info_class_ratio) if args.loss_type == 'both' else '') \
+           + '_Epochs-' + str(args.train_total_epochs)
+
+# exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
 #               + '_' + str(args.model) + str(args.layers) \
 #               + '_K_' + str(args.local_module_num) \
@@ -181,14 +176,15 @@ exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + '_ixx_2_' + str(args.ixx_2) \
 #               + '_ixy_2_' + str(args.ixy_2) \
 #               + ('_cos_lr_' if args.cos_lr else '') \
-#               + '_joint_train_' + str(args.joint_train) \
-#               + '_layerwise_train_' + str(args.layerwise_train) \
-#               + '_locally_train_' + str(args.locally_train) \
-#               + '_train_total_epochs_' + str(args.train_total_epochs)   
-                      
-                          
+#               + '_train_total_epochs_' + str(args.train_total_epochs)\
+#               + '_confidence_threshold_' + str(args.confidence_threshold)\
+#               + '_train_type_' + str(args.train_type) \
+#               + '_loss_type_' + str(args.loss_type) \
+#               + '_info_class_ratio_' + str(args.info_class_ratio)\
+#               + '_h_split_' + str(args.h_split)
+                 
+                                            
 record_path = './logs/' + exp_name
-# record_path = './logs/' + file_exp_name
 
 record_file = record_path + '/training_process.txt'
 accuracy_file = record_path + '/accuracy_epoch.txt'
@@ -197,8 +193,71 @@ check_point = os.path.join(record_path, args.checkpoint)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+activations = defaultdict(list)
+
+def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
+    counter = [0]  # Use a list for mutable integer
+
+    def hook(model, input, output):
+        if model.training:
+            # Detach and convert to float16 to save memory
+            activation = output.detach().to(torch.float16)
+
+            if activations[name] is None:
+                activations[name] = [activation]  # Store as a list of tensors
+            else:
+                activations[name].append(activation)
+
+            # Transfer to CPU every 16 batches
+            counter[0] += 1
+            if counter[0] % transfer_to_cpu_batch == 0:
+                activations[name] = [tensor.to('cpu', non_blocking=True) for tensor in activations[name]]
+                
+    def hook_A100(model, input, output):
+        if model.training:
+            # Detach and convert to float16 to save memory
+            activation = output.detach().to(torch.float16)
+
+            if activations[name] is None:
+                activations[name] = [activation]  # Store as a list of tensors
+            else:
+                activations[name].append(activation)
+
+    if GPU_memory < 40:
+        return hook
+    else:
+        return hook_A100
+
+
+# def save_activation(name):
+#     def hook(model, input, output):
+#         # Check if the model is in training mode
+#         if model.training:
+#             # Detach and move the output to CPU
+#             activation = output.detach().cpu()
+#             print(f"Saving activation of {name} with shape {activation.shape}")
+#             # Handle the first batch separately
+#             if activations[name] is None:
+#                 activations[name] = activation
+#             else:
+#                 # Ensure that activations[name] is a Tensor before concatenating
+#                 if isinstance(activations[name], torch.Tensor):
+#                     activations[name] = torch.cat((activations[name], activation), dim=0)
+#                 else:
+#                     raise TypeError(f"Expected activations['{name}'] to be a Tensor, but got {type(activations[name])}")
+#     return hook
+
 
 def main():
+    
+    if args.dry_run:
+        print(f"Performing a dry run of {exp_name} with limited epochs...")
+        args.train_total_epochs = 5  # Set the number of epochs to 5 for dry run
+        training_configurations[args.model]['epochs'] = 5  # Set the number of epochs to 5 for dry run
+        
+        args.no_wandb_log = True  # Do not log to wandb for dry run
+        args.save_checkpoint = False  # Do not save checkpoints for dry run
+        args.print_freq = 10  # Set the print frequency to 1 for dry run
     
     if not args.no_wandb_log:
         # Ensure that the 'WANDB_API_KEY' environment variable is set in your system.
@@ -348,6 +407,30 @@ def main():
         curr_module = -1
         epochs_per_module = training_configurations[args.model]['epochs'] // model.module.local_module_num
     
+    
+    def register_hooks_for_sequential(module, parent_name=''):
+        for name, submodule in module.named_children():
+            # Construct the full name of the submodule
+            module_full_name = f"{parent_name}.{name}" if parent_name else name
+
+            if isinstance(submodule, nn.Sequential):
+                # If the submodule is a Sequential container, iterate its children
+                for sub_name, sub_module in submodule.named_children():
+                    if isinstance(sub_module, BasicBlock):
+                        # Register a hook if the child is a BasicBlock
+                        block_full_name = f"{module_full_name}.{sub_name}"
+                        print(f"Registering hook to: {block_full_name}")
+                        sub_module.register_forward_hook(save_activation(block_full_name))
+
+            # Recursively apply this function to all submodules
+            # This is to handle nested Sequential containers
+            register_hooks_for_sequential(submodule, module_full_name)
+
+    # Call this function with your model
+    register_hooks_for_sequential(model)
+
+        
+        
     for epoch in range(start_epoch, training_configurations[args.model]['epochs']):
         if args.train_type == 'layer':  
             adjust_learning_rate(optimizer, epoch % epochs_per_module + 1)
@@ -358,9 +441,11 @@ def main():
 
         # train for one epoch
         if args.train_type == 'layer':
-            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc = train(train_loader, model, optimizer, epoch)
+            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict = train(train_loader, model, optimizer, epoch)
+        
+        
         
         train_prec1 = train_prec_lst[-1]
         
@@ -399,17 +484,38 @@ def main():
         is_best = val_prec1 > best_prec1
         best_prec1 = max(val_prec1, best_prec1)
 
-        # save_checkpoint({
-        #     'epoch': epoch + 1,
-        #     'state_dict': model.state_dict(),
-        #     'best_acc': best_prec1,
-        #     'optimizer': optimizer.state_dict(),
-        #     'val_acc': val_acc,
-
-        # }, is_best, checkpoint=check_point)
+        if args.save_checkpoint:
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'state_dict': model.state_dict(),
+                'best_acc': best_prec1,
+                'optimizer': optimizer.state_dict(),
+                'val_acc': val_acc,
+            }, is_best, checkpoint=check_point)
+            print('Checkpoint saved to ' + check_point)
         print('Best accuracy: ', best_prec1)
         np.savetxt(accuracy_file, np.array(val_acc))
 
+
+
+
+# def estimate_memory_usage(tensor):
+#     """
+#     Estimate the memory usage of a tensor in bytes.
+#     """
+#     # Get the number of elements in the tensor
+#     num_elements = tensor.numel()
+
+#     # Estimate the size of each element in bytes
+#     element_size = tensor.element_size()
+
+#     # Total memory usage in bytes
+#     memory_usage = num_elements * element_size
+#     return memory_usage
+
+# TODO: Implement this function
+def per_layer_LS_calc(activation):
+    return 1
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
@@ -424,10 +530,11 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
 
     train_batches_num = len(train_loader)
-
+    
     # switch to train mode
     model.train()
-
+    activations.clear()
+    
     end = time.time()
     for i, (x, target) in enumerate(train_loader):
         target = target.to(device)
@@ -462,7 +569,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
         for idx, meter in enumerate(per_exit_loss_meter):
             meter.update(per_exit_loss[idx].item(), x.size(0)) 
             
-        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold)
+        exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold, )
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
             meter.update(exit_num[idx].item()/x.size(0)*100, x.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
@@ -471,10 +578,9 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
         batch_time.update(time.time() - end)
         end = time.time()
-
-        if (i+1) % args.print_freq == 0:
+        if (i+1) % args.print_freq == 0 or (i+1) == train_batches_num:
             # print(discriminate_weights)
-            fd = open(record_file, 'a+')
+            
             string = ('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
                       'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
@@ -484,15 +590,43 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
 
             print(string)
             # print(weights)
-            fd.write(string + '\n')
-            fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-            fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
-            fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
-            fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
-            fd.close()
+            if not args.dry_run:
+                fd = open(record_file, 'a+')
+                fd.write(string + '\n')
+                fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
+                fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+                fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+                fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
+                fd.close()
+                
+    # After training loop
+    
+    LS_dict = dict()
+    
+    activation_keys = list(activations.keys())
+    for name in activation_keys:
+        if activations[name]:
+            activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
+            activations[name] = torch.cat(activations[name], dim=0)
+            LS_dict[name] = per_layer_LS_calc(activations[name])
+            del activations[name]
 
+    # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
+    # print(f"Total memory usage by activations: {total_memory / (1024 ** 2):.2f} MB")
+    
+    activations.clear()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    print(f'activation cleared')
+    
+    
     # ave_top1 = [meter.ave for meter in top1]
-    return losses.ave, [meter.ave for meter in per_exit_loss_meter], [meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
+    train_loss = losses.ave
+    train_loss_lst = [meter.ave for meter in per_exit_loss_meter]
+    train_prec_lst= [meter.ave for meter in top1],
+    train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter],
+    train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
+    return train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict
 
 
 def validate(val_loader, model, epoch):
@@ -546,7 +680,6 @@ def validate(val_loader, model, epoch):
         batch_time.update(time.time() - end)
         end = time.time()
 
-    fd = open(record_file, 'a+')
     string = ('Test: [{0}][{1}/{2}]\t'
               'Time {batch_time.value:.3f} ({batch_time.ave:.3f})\t'
               'Loss {loss.value:.4f} ({loss.ave:.4f})\t'
@@ -554,12 +687,15 @@ def validate(val_loader, model, epoch):
         epoch, (i + 1), train_batches_num, batch_time=batch_time,
         loss=losses, top1=top1[-1]))
     print(string)
-    fd.write(string + '\n')
-    fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
-    fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
-    fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
-    fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
-    fd.close()
+    if not args.dry_run:
+        fd = open(record_file, 'a+')
+        fd.write(string + '\n')
+        fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
+        fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
+        fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
+        fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
+        fd.close()
+        
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
@@ -665,36 +801,72 @@ def accuracy_all_exits(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
     return res
 
-def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
+# def accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=.7):
+#     """Computes the precision@k for the specified values of k"""
+#     maxk = max(topk)
+#     batch_size = target.size(0)
+#     output = torch.stack(output).detach()
+
+#     _, pred = output.topk(maxk, 2, True, True)
+    
+#     prob = torch.softmax(output,dim=2)
+#     p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
+    
+#     pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+#     correct = pred.eq(target.view(1, -1).expand_as(pred))
+    
+#     prob = torch.softmax(output,dim=2)
+#     p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
+#     p = p+1
+#     e = p>threshold
+#     exits = torch.zeros(p.shape[0],1,device='cpu')
+#     exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+#     for m in range(p.shape[0]):
+#         print(f'intotal: {p[m].shape} before + 1:{((p >= 0) & (p[m] < 1)).sum().item()} in 0-1')
+#         exits[m] = e[m].sum()
+#     for m in range(p.shape[0]):
+#         if exits[m] != 0:
+#             exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+#             sum = exit_preds.float().sum()
+#             avg =  sum/exit_preds.shape[0]*100.0
+#             exits_acc[m] = avg
+
+#     return exits, exits_acc
+
+def accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=.7, device=device):
     """Computes the precision@k for the specified values of k"""
     maxk = max(topk)
     batch_size = target.size(0)
+
     output = torch.stack(output).detach()
 
     _, pred = output.topk(maxk, 2, True, True)
-    
-    prob = torch.softmax(output,dim=2)
-    p = (1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2,keepdim=True)
-    
-    pred = pred.reshape(pred.shape[0],pred.shape[2],pred.shape[1])
+    prob = torch.softmax(output, dim=2)
+    # p = (1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2, keepdim=True)
+
+    pred = pred.reshape(pred.shape[0], pred.shape[2], pred.shape[1])
     correct = pred.eq(target.view(1, -1).expand_as(pred))
-    
-    prob = torch.softmax(output,dim=2)
-    p = ((1/(np.log(output.shape[2])))* (prob*torch.log(prob)).sum(dim=2)).cpu()
-    p = p+1
-    e = p>threshold
-    exits = torch.zeros(p.shape[0],1,device='cpu')
-    exits_acc = torch.zeros(p.shape[0],1,device='cpu')
+
+    prob = torch.softmax(output, dim=2)
+    p = ((1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2))
+    if device is not None:
+        p = p.to(device)  # Move p to the specified device
+    # p = p + 1
+    e = p > threshold
+
+    exits = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
+    exits_acc = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
+
     for m in range(p.shape[0]):
         exits[m] = e[m].sum()
-    for m in range(p.shape[0]):
         if exits[m] != 0:
-            exit_preds = correct[m,:1][e[m].reshape(1,e.shape[1])]
+            exit_preds = correct[m, :1][e[m].reshape(1, e.shape[1])]
             sum = exit_preds.float().sum()
-            avg =  sum/exit_preds.shape[0]*100.0
+            avg = sum / exit_preds.shape[0] * 100.0
             exits_acc[m] = avg
 
     return exits, exits_acc
+
 
 if __name__ == '__main__':
     main()
