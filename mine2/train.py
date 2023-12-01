@@ -461,6 +461,8 @@ def main():
                 wandb.log({f"Train Number of Exits at_{idx}": val}, step=epoch)
             for idx, val in enumerate(train_exits_acc):
                 wandb.log({f"Train Prec@1 when exit at_{idx}": val}, step=epoch)
+            for key, val in enumerate(LS_dict.items()):
+                wandb.log({f"Train LS_{key}": val}, step=epoch)
 
         # evaluate on validation set
         val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
@@ -516,27 +518,36 @@ def main():
 
 # TODO: Implement this function
 def per_layer_LS_calc(activation, target_epoch, class_num):
-    print(activation.shape, target_epoch.shape)
+    
+    # target_epoch =target_epoch.to(device='cpu')
     LS_lst = []
-    for i in range(class_num):
-        activation_class_i = activation[(target_epoch == i)]
-        activation_class_i = activation_class_i.view(activation_class_i.shape[0], 1, -1)
-        activation_not_i = activation[(target_epoch != i)]
-        activation_not_i = activation_not_i.view(1, activation_not_i.shape[0], -1)
-        print(activation_class_i.shape)
-        print(activation_not_i.shape)
-        m_i = (activation_class_i - activation_not_i).sum(dim=0)
-        print(m_i.shape)
+    for n in range(class_num):
+        A = activation[(target_epoch == n)]
+        I = A.shape[0]
+        A_sum = A.to(dtype=torch.float64).sum(dim=0)
+        B = activation[(target_epoch != n)].to(dtype=torch.float64)
+        m_i = torch.zeros(A[0].shape, dtype=torch.float64).to(device)
+        for B_j in B:
+            # print(A_sum - I * B_j)
+            m_i += A_sum - I * B_j
+        
+        m_i = m_i.unsqueeze(-1)
+        # print(A.shape)
+        # print(B.shape)
+        # print(m_i.shape)
 
         L2_m = torch.norm(m_i, p=2)
 
-        print(L2_m)
-        exit()
+        # print(L2_m)
         w = m_i / L2_m
-        LS = w.T @ m_i
-        LS = LS @ LS.T
+        LS = torch.matmul(w.T, m_i)
+        LS = torch.matmul(LS, LS.T)
+        # print(LS)
         LS_lst.append(LS)
-    return np.mean(LS_lst)
+        # print(LS_lst)
+    mean = torch.mean(torch.stack(LS_lst), dim=0).item()
+    print(mean)
+    return mean
     
     
     return 1
