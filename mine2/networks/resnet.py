@@ -569,6 +569,7 @@ class InfoProResNet(nn.Module):
                         xb_d = xb_a.detach()
                         xa = torch.cat((xa_a,xb_d),dim=1)
                         xb = torch.cat((xa_d,xb_a),dim=1)
+                        print(x.shape,xa_a.shape,xa.shape)
 
                         if self.train_type == 'local':
                             if self.loss_type in ['class','info','both']:
