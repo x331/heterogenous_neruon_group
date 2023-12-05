@@ -422,7 +422,7 @@ class InfoProResNet(nn.Module):
     #     return nn.Sequential(*layers)
     
     
-    def _make_layer(self, block, planes, blocks, groups=1, stride=1, stage=None):
+    def _make_layer(self, block, planes, blocks, stride=1, stage=None):
 
         if self.h_split != -1:
             first_conv_groups = False
