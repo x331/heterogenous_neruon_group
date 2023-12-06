@@ -25,7 +25,6 @@ class BasicBlock(nn.Module):
 
     def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_rate=0,split=False, beginning=False,h_ratio=.5):
         super(BasicBlock, self).__init__()
-        print('a BasicBlock is created')
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -87,9 +86,19 @@ class BasicBlock(nn.Module):
         if not self.split:
             out = self.conv1(x)
         else:
-            xa = self.conv1a(img)
-            xb = self.conv1b(img)
-            out = torch.cat((xa,xb),dim=1)
+            # xa = self.conv1a(x)
+            # xb = self.conv1b(x)
+            # out = torch.cat((xa,xb),dim=1)
+            if self.beginning:
+                xa = self.conv1a(x)
+                xb = self.conv1b(x)
+                out = torch.cat((xa,xb),dim=1)
+            else:
+                out_chan1 = math.floor(self.planes*self.h_ratio)
+                out_chan2 = self.planes - out_chan1
+                xa = self.conv1a(x[:in_chan1])
+                xb = self.conv1b(x[in_chan1:])
+                out = torch.cat((xa,xb),dim=1)
         
         out = self.bn1(out)
         out = self.relu(out)
@@ -98,9 +107,14 @@ class BasicBlock(nn.Module):
         if not self.split:
             out = self.conv2(out)
         else:
-            xa = self.conv2a(out)
-            xb = self.conv2b(out)
-            out = torch.cat((xa,xb),dim=1)
+            # xa = self.conv2a(out)
+            # xb = self.conv2b(out)
+            # out = torch.cat((xa,xb),dim=1)
+            in_chan1 = math.floor(self.inplanes*self.h_ratio)
+            in_chan2 = self.inplanes - in_chan1
+            xa = self.conv2a(out[:in_chan1])
+            xb = self.conv2b(out[in_chan1:])
+            out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
 
@@ -112,10 +126,10 @@ class BasicBlock(nn.Module):
                 if self.beginning:
                     residual = self.downsample(x)
                 else:
-                    # xa = self.downsample[0](x)
-                    # xb = self.downsample[1](x)
-                    # residual = torch.cat(xa,xb,dim=1)
-                    residual = self.downsample(x)
+                    xa = self.downsample[0](x)
+                    xb = self.downsample[1](x)
+                    residual = torch.cat(xa,xb,dim=1)
+                    # residual = self.downsample(x)
                 
 
         out += residual
@@ -294,26 +308,56 @@ class InfoProResNet(nn.Module):
                         'loss_mode=local_loss_mode, class_num=class_num, '
                         'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
         else:
-            for i,item in enumerate(self.infopro_config):
-                for group in ['a','b']:
-                    module_index, layer_index = item
-                    chan = math.floor(wide_list[module_index]*self.h_split_ratios[i])
-                    if group== 'b':
-                        chan = wide_list[module_index]-chan
+            # for i,item in enumerate(self.infopro_config):
+            #     for group in ['a','b']:
+            #         module_index, layer_index = item
+            #         chan = math.floor(wide_list[module_index]*self.h_split_ratios[i])
+            #         if group== 'b':
+            #             chan = wide_list[module_index]-chan
                         
+            #         if self.loss_type == 'info' or self.loss_type == 'both':
+            #             exec('self.decoder_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+            #                 '= Decoder(' + str(chan) + ', image_size, widen=aux_net_widen)')
+            #             exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+            #                 '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+            #                 'loss_mode=local_loss_mode, class_num=class_num, '
+            #                 'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            #         if self.loss_type == 'class'  or self.loss_type == 'both':
+            #             exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) + '_' + group +
+            #                 '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+            #                 'loss_mode=local_loss_mode, class_num=class_num, '
+            #                 'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            # for i,item in enumerate(self.infopro_config):
+            #         module_index, layer_index = item
+            #         chan_a = math.floor(wide_list[module_index]*self.h_split_ratios[i])
+            #         chan_b = wide_list[module_index]-chan_a
+                        
+            #         if self.loss_type == 'info' or self.loss_type == 'both':
+            #             exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
+            #                 '= Decoder(' + str(chan_a) + ', image_size, widen=aux_net_widen)')
+            #             exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
+            #                 '= AuxClassifier(' + str(chan_a) + ', net_config=aux_net_config, '
+            #                 'loss_mode=local_loss_mode, class_num=class_num, '
+            #                 'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            #         if self.loss_type == 'class'  or self.loss_type == 'both':
+            #             exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
+            #                 '= AuxClassifier(' + str(chan_b) + ', net_config=aux_net_config, '
+            #                 'loss_mode=local_loss_mode, class_num=class_num, '
+            #                 'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
+            for i,item in enumerate(self.infopro_config):
+                    module_index, layer_index = item                        
                     if self.loss_type == 'info' or self.loss_type == 'both':
-                        exec('self.decoder_' + str(module_index) + '_' + str(layer_index) + '_' + group +
-                            '= Decoder(' + str(chan) + ', image_size, widen=aux_net_widen)')
-                        exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) + '_' + group +
-                            '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+                        exec('self.decoder_' + str(module_index) + '_' + str(layer_index) +
+                            '= Decoder(wide_list[module_index], image_size, widen=aux_net_widen)')
+                        exec('self.aux_classifier_' + str(module_index) + '_' + str(layer_index) +
+                            '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
                             'loss_mode=local_loss_mode, class_num=class_num, '
                             'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
                     if self.loss_type == 'class'  or self.loss_type == 'both':
-                        exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) + '_' + group +
-                            '= AuxClassifier(' + str(chan) + ', net_config=aux_net_config, '
+                        exec('self.pred_head_' + str(module_index) + '_' + str(layer_index) +
+                            '= AuxClassifier(wide_list[module_index], net_config=aux_net_config, '
                             'loss_mode=local_loss_mode, class_num=class_num, '
                             'widen=aux_net_widen, feature_dim=aux_net_feature_dim)')
-
         
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -378,7 +422,7 @@ class InfoProResNet(nn.Module):
     #     return nn.Sequential(*layers)
     
     
-    def _make_layer(self, block, planes, blocks, groups=1, stride=1, stage=None):
+    def _make_layer(self, block, planes, blocks, stride=1, stage=None):
 
         if self.h_split != -1:
             first_conv_groups = False
@@ -457,60 +501,131 @@ class InfoProResNet(nn.Module):
                 x = torch.cat((xa,xb),dim=1)
             x = self.bn1(x)
             x = self.relu(x)
-
-            if local_module_i <= self.local_module_num - 2:
-                if self.infopro_config[local_module_i][0] == stage_i \
-                        and self.infopro_config[local_module_i][1] == layer_i:
-                    if self.train_type == 'local':
-                        if self.loss_type in ['class','info','both']:
-                            infoproloss = 0 
-                            classloss = 0
-                            preds = 0
-                            loss = 0
-                            if self.loss_type != 'class':
-                                ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                                ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                                ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                                loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                                loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                            if self.loss_type != 'info':
-                                classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                
-                            if self.loss_type == 'class':
-                                loss = classloss
-                            elif self.loss_type == 'info':
-                                loss = infoproloss
-                            elif self.loss_type == 'both':
-                                loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
-                                
-                            if self.training :    
-                                loss.backward()        
-                            loss_per_exit.append(loss)
-                            pred_per_exit.append(preds)
-                            x = x.detach()
-
-                    else:
-                        loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                        loss_per_exit.append(loss_ixy)
-                        
-                        if self.train_type == 'layer':
-                            # means we reached the classifier of the target module
-                            if target_module == local_module_i:
-                                pred_per_exit.append(preds)
-                                for _ in range(self.local_module_num - 1 - local_module_i):
-                                    loss_per_exit.append(torch.zeros_like(loss_ixy))
-                                    pred_per_exit.append(torch.zeros_like(preds))
+            
+            if self.h_split == -1:
+                if local_module_i <= self.local_module_num - 2:
+                    if self.infopro_config[local_module_i][0] == stage_i \
+                            and self.infopro_config[local_module_i][1] == layer_i:
+                        if self.train_type == 'local':
+                            if self.loss_type in ['class','info','both']:
+                                infoproloss = 0 
+                                classloss = 0
+                                preds = 0
+                                loss = 0
+                                if self.loss_type != 'class':
+                                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                    ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                    ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                    loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                                    loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                    infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                if self.loss_type != 'info':
+                                    classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                     
-                                if self.training:
-                                    loss_ixy.backward()
-                                return pred_per_exit, loss_per_exit
-                            else:
-                                # detach the current module from computation graph, only need to keep the target module
+                                if self.loss_type == 'class':
+                                    loss = classloss
+                                elif self.loss_type == 'info':
+                                    loss = infoproloss
+                                elif self.loss_type == 'both':
+                                    loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
+                                    
+                                if self.training :    
+                                    loss.backward()        
+                                loss_per_exit.append(loss)
+                                pred_per_exit.append(preds)
                                 x = x.detach()
-                    
-                        pred_per_exit.append(preds)
-                    local_module_i += 1                    
+
+                        else:
+                            loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                            loss_per_exit.append(loss_ixy)
+                            
+                            if self.train_type == 'layer':
+                                # means we reached the classifier of the target module
+                                if target_module == local_module_i:
+                                    pred_per_exit.append(preds)
+                                    for _ in range(self.local_module_num - 1 - local_module_i):
+                                        loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                        pred_per_exit.append(torch.zeros_like(preds))
+                                        
+                                    if self.training:
+                                        loss_ixy.backward()
+                                    return pred_per_exit, loss_per_exit
+                                else:
+                                    # detach the current module from computation graph, only need to keep the target module
+                                    x = x.detach()
+                        
+                            pred_per_exit.append(preds)
+                        local_module_i += 1  
+                        
+            else:
+                if local_module_i <= self.local_module_num - 2:
+                    if self.infopro_config[local_module_i][0] == stage_i \
+                            and self.infopro_config[local_module_i][1] == layer_i:
+                        
+                        chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[0])
+                        xa_a = x[:,:chan_1]
+                        print(x[:,:chan_1].shape,x[:chan_1].shape)
+                        xb_a = x[:,chan_1:]
+                        xa_d = xa_a.detach()
+                        xb_d = xb_a.detach()
+                        xa = torch.cat((xa_a,xb_d),dim=1)
+                        xb = torch.cat((xa_d,xb_a),dim=1)
+                        print(x.shape,xa_a.shape,xa.shape)
+
+                        if self.train_type == 'local':
+                            if self.loss_type in ['class','info','both']:
+                                infoproloss = 0 
+                                classloss = 0
+                                preds = 0
+                                loss = 0
+                                if self.loss_type != 'class':
+                                    ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                    ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                    ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                    print(x.shape,xa.shape)
+                                    loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(xa, self._image_restore(img))
+                                    loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(xa, target)
+                                    infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                if self.loss_type != 'info':
+                                    classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(xb, target)
+                                    
+                                if self.loss_type == 'class':
+                                    print('not supported')
+                                elif self.loss_type == 'info':
+                                    print('not supported')
+                                elif self.loss_type == 'both':
+                                    # loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
+                                    loss =  [infoproloss,classloss]
+
+                                if self.training : 
+                                    for l in loss:
+                                        l.backward()  
+                                loss_per_exit.append(loss)
+                                pred_per_exit.append(preds)
+                                x = x.detach()
+
+                        else:
+                            print('not supported')
+                            # loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(xb, target)
+                            # loss_per_exit.append(loss_ixy)
+                            
+                            # if self.train_type == 'layer':
+                            #     # means we reached the classifier of the target module
+                            #     if target_module == local_module_i:
+                            #         pred_per_exit.append(preds)
+                            #         for _ in range(self.local_module_num - 1 - local_module_i):
+                            #             loss_per_exit.append(torch.zeros_like(loss_ixy))
+                            #             pred_per_exit.append(torch.zeros_like(preds))
+                                        
+                            #         if self.training:
+                            #             loss_ixy.backward()
+                            #         return pred_per_exit, loss_per_exit
+                            #     else:
+                            #         # detach the current module from computation graph, only need to keep the target module
+                            #         x = x.detach()
+                        
+                            # pred_per_exit.append(preds)
+                        local_module_i += 1                   
                         
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
@@ -518,61 +633,132 @@ class InfoProResNet(nn.Module):
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
                     
 
-                    if local_module_i <= self.local_module_num - 2:
-                        if self.infopro_config[local_module_i][0] == stage_i \
-                                and self.infopro_config[local_module_i][1] == layer_i:
-     
-                            if self.train_type == 'local':
-                                if self.loss_type in ['class','info','both']:
-                                    infoproloss = 0 
-                                    classloss = 0
-                                    preds = 0
-                                    loss = 0
-                                    if self.loss_type != 'class':
-                                        ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
-                                        ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
-                                        ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
-                                        loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
-                                        loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                        infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
-                                    if self.loss_type != 'info':
-                                        classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                        
-                                    if self.loss_type == 'class':
-                                        loss = classloss
-                                    elif self.loss_type == 'info':
-                                        loss = infoproloss
-                                    elif self.loss_type == 'both':
-                                        loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
-                                        
-                                    if self.training : 
-                                        loss.backward()     
-                                    loss_per_exit.append(loss)
-                                    pred_per_exit.append(preds)
-                                    x = x.detach()
+                    if self.h_split == -1:
+                        if local_module_i <= self.local_module_num - 2:
+                            if self.infopro_config[local_module_i][0] == stage_i \
+                                    and self.infopro_config[local_module_i][1] == layer_i:
+        
+                                if self.train_type == 'local':
+                                    if self.loss_type in ['class','info','both']:
+                                        infoproloss = 0 
+                                        classloss = 0
+                                        preds = 0
+                                        loss = 0
+                                        if self.loss_type != 'class':
+                                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                            loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(x, self._image_restore(img))
+                                            loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                            infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                        if self.loss_type != 'info':
+                                            classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
                                             
-
-                                
-                            else:
-                                loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                loss_per_exit.append(loss_ixy)
-                                
-                                if self.train_type == 'layer':
-                                    # means we reached the classifier of the target module
-                                    if target_module == local_module_i:
+                                        if self.loss_type == 'class':
+                                            loss = classloss
+                                        elif self.loss_type == 'info':
+                                            loss = infoproloss
+                                        elif self.loss_type == 'both':
+                                            loss =  infoproloss*(self.info_class_ratio)+classloss*(1-self.info_class_ratio)
+                                            
+                                        if self.training : 
+                                            loss.backward()     
+                                        loss_per_exit.append(loss)
                                         pred_per_exit.append(preds)
-                                        for _ in range(self.local_module_num - 1 - local_module_i):
-                                            loss_per_exit.append(torch.zeros_like(loss_ixy))
-                                            pred_per_exit.append(torch.zeros_like(preds))
-                                        if self.training:
-                                            loss_ixy.backward()
-                                        return pred_per_exit, loss_per_exit
-                                    else:
-                                        # detach the current module from computation graph, only need to keep the target module
                                         x = x.detach()
-                            
-                                pred_per_exit.append(preds)
-                            local_module_i += 1
+                                                
+
+                                    
+                                else:
+                                    loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                    loss_per_exit.append(loss_ixy)
+                                    
+                                    if self.train_type == 'layer':
+                                        # means we reached the classifier of the target module
+                                        if target_module == local_module_i:
+                                            pred_per_exit.append(preds)
+                                            for _ in range(self.local_module_num - 1 - local_module_i):
+                                                loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                                pred_per_exit.append(torch.zeros_like(preds))
+                                            if self.training:
+                                                loss_ixy.backward()
+                                            return pred_per_exit, loss_per_exit
+                                        else:
+                                            # detach the current module from computation graph, only need to keep the target module
+                                            x = x.detach()
+                                
+                                    pred_per_exit.append(preds)
+                        
+                                local_module_i += 1
+
+                    else:
+                        if local_module_i <= self.local_module_num - 2:
+                            if self.infopro_config[local_module_i][0] == stage_i \
+                                    and self.infopro_config[local_module_i][1] == layer_i:
+                                
+                                chan_1 = self.h_split_ratios[self._get_local_mod_pos(self, stage_i,layer_i)]*x.shape[0]
+                                xa_a = x[:chan_1]
+                                xb_a = x[chan_1:]
+                                xa_d = xa_a.detach()
+                                xb_d = xb_a.detach()
+                                xa = torch.cat((xa_a,xb_d),dim=1)
+                                xb = torch.cat((xa_d,xb_a),dim=1)
+
+                                if self.train_type == 'local':
+                                    if self.loss_type in ['class','info','both']:
+                                        infoproloss = 0 
+                                        classloss = 0
+                                        preds = 0
+                                        loss = 0
+                                        if self.loss_type != 'class':
+                                            ratio = local_module_i / (self.local_module_num - 2) if self.local_module_num > 2 else 0
+                                            ixx_r = ixx_1 * (1 - ratio) + ixx_2 * ratio
+                                            ixy_r = ixy_1 * (1 - ratio) + ixy_2 * ratio
+                                            loss_ixx = eval('self.decoder_' + str(stage_i) + '_' + str(layer_i))(xa, self._image_restore(img))
+                                            loss_ixy,preds = eval('self.aux_classifier_' + str(stage_i) + '_' + str(layer_i))(xa, target)
+                                            infoproloss = ixx_r * loss_ixx + ixy_r * loss_ixy
+                                        if self.loss_type != 'info':
+                                            classloss, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(xb, target)
+                                            
+                                        if self.loss_type == 'class':
+                                            print('not supported')
+                                        elif self.loss_type == 'info':
+                                            print('not supported')
+                                        elif self.loss_type == 'both':
+                                            loss =  [infoproloss,classloss]
+                                            
+                                        if self.training : 
+                                            for l in loss:
+                                                l.backward()  
+                                            loss.backward()     
+                                        loss_per_exit.append(loss)
+                                        pred_per_exit.append(preds)
+                                        x = x.detach()
+                                                
+
+                                    
+                                else:
+                                    print('not supported')
+                                    # loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
+                                    # loss_per_exit.append(loss_ixy)
+                                    
+                                    # if self.train_type == 'layer':
+                                    #     # means we reached the classifier of the target module
+                                    #     if target_module == local_module_i:
+                                    #         pred_per_exit.append(preds)
+                                    #         for _ in range(self.local_module_num - 1 - local_module_i):
+                                    #             loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                    #             pred_per_exit.append(torch.zeros_like(preds))
+                                    #         if self.training:
+                                    #             loss_ixy.backward()
+                                    #         return pred_per_exit, loss_per_exit
+                                    #     else:
+                                    #         # detach the current module from computation graph, only need to keep the target module
+                                    #         x = x.detach()
+                                
+                                    # pred_per_exit.append(preds)
+                        
+                                local_module_i += 1                                
                             
 
             x = self.avgpool(x)
