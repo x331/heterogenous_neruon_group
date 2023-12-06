@@ -111,7 +111,7 @@ parser.add_argument('--weight_decay', default=1e-4, type=float,
                     help='weight decay factor')
 parser.add_argument('--info_class_ratio', default=.5, type=float,
                     help='given value v times infopro plus (1-v) times classifcation is now the loss')
-parser.add_argument('--confidence_threshold', default=0, type=float,
+parser.add_argument('--confidence_threshold', default=0.7, type=float,
                     help='what entropy based confidence level is needed to early exit')
 parser.add_argument('--lr', default=.1, type=float,
                     help='what initial learning rate you want to use')
@@ -129,7 +129,9 @@ parser.add_argument('--save-checkpoint', dest='save_checkpoint', action='store_t
 parser.set_defaults(save_checkpoint=False)
 parser.add_argument('--print-freq', default=1, type=int,
                     help='print frequency during training (default: 1)')
-
+parser.add_argument('--lsm', dest='lsm', action='store_true',
+                    help='linear seperability measure')
+parser.set_defaults(lsm=False)
 
 
 args = parser.parse_args()
@@ -193,41 +195,42 @@ check_point = os.path.join(record_path, args.checkpoint)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-activations = defaultdict(list)
+if args.lsm:
+    activations = defaultdict(list)
 
-def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
-    counter = [0]  # Use a list for mutable integer
+    def save_activation(name, transfer_to_cpu_batch=16, GPU_memory=0):
+        counter = [0]  # Use a list for mutable integer
 
-    def hook(model, input, output):
-        if model.training:
-            # Detach and convert to float16 to save memory
-            activation = output.detach().view(output.size(0), -1).to(torch.float16)
-            # print(activation.shape)
+        def hook(model, input, output):
+            if model.training:
+                # Detach and convert to float16 to save memory
+                activation = output.detach().view(output.size(0), -1).to(torch.float16)
+                # print(activation.shape)
 
-            if activations[name] is None:
-                activations[name] = [activation]  # Store as a list of tensors
-            else:
-                activations[name].append(activation)
+                if activations[name] is None:
+                    activations[name] = [activation]  # Store as a list of tensors
+                else:
+                    activations[name].append(activation)
 
-            # Transfer to CPU every 16 batches
-            counter[0] += 1
-            if counter[0] % transfer_to_cpu_batch == 0:
-                activations[name] = [tensor.to('cpu', non_blocking=True) for tensor in activations[name]]
-                
-    def hook_A100(model, input, output):
-        if model.training:
-            # Detach and convert to float16 to save memory
-            activation = output.detach().view(output.size(0), -1).to(torch.float16)
+                # Transfer to CPU every 16 batches
+                counter[0] += 1
+                if counter[0] % transfer_to_cpu_batch == 0:
+                    activations[name] = [tensor.to('cpu', non_blocking=True) for tensor in activations[name]]
+                    
+        def hook_A100(model, input, output):
+            if model.training:
+                # Detach and convert to float16 to save memory
+                activation = output.detach().view(output.size(0), -1).to(torch.float16)
 
-            if activations[name] is None:
-                activations[name] = [activation]  # Store as a list of tensors
-            else:
-                activations[name].append(activation)
+                if activations[name] is None:
+                    activations[name] = [activation]  # Store as a list of tensors
+                else:
+                    activations[name].append(activation)
 
-    if GPU_memory < 40:
-        return hook
-    else:
-        return hook_A100
+        if GPU_memory < 40:
+            return hook
+        else:
+            return hook_A100
 
 
 # def save_activation(name):
@@ -428,7 +431,8 @@ def main():
             register_hooks_for_sequential(submodule, module_full_name)
 
     # Call this function with your model
-    register_hooks_for_sequential(model)
+    if args.lsm:
+        register_hooks_for_sequential(model)
 
         
         
@@ -461,8 +465,9 @@ def main():
                 wandb.log({f"Train Number of Exits at_{idx}": val}, step=epoch)
             for idx, val in enumerate(train_exits_acc):
                 wandb.log({f"Train Prec@1 when exit at_{idx}": val}, step=epoch)
-            for key, val in enumerate(LS_dict.items()):
-                wandb.log({f"Train LS_{key}": val}, step=epoch)
+            if args.lsm:
+                for key, val in enumerate(LS_dict.items()):
+                    wandb.log({f"Train LS_{key}": val}, step=epoch)
 
         # evaluate on validation set
         val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
@@ -517,40 +522,41 @@ def main():
 #     return memory_usage
 
 # TODO: Implement this function
-def per_layer_LS_calc(activation, target_epoch, class_num):
-    
-    # target_epoch =target_epoch.to(device='cpu')
-    LS_lst = []
-    for n in range(class_num):
-        A = activation[(target_epoch == n)]
-        I = A.shape[0]
-        A_sum = A.to(dtype=torch.float64).sum(dim=0)
-        B = activation[(target_epoch != n)].to(dtype=torch.float64)
-        m_i = torch.zeros(A[0].shape, dtype=torch.float64).to(device)
-        for B_j in B:
-            # print(A_sum - I * B_j)
-            m_i += A_sum - I * B_j
+if args.lsm:
+    def per_layer_LS_calc(activation, target_epoch, class_num):
         
-        m_i = m_i.unsqueeze(-1)
-        # print(A.shape)
-        # print(B.shape)
-        # print(m_i.shape)
+        # target_epoch =target_epoch.to(device='cpu')
+        LS_lst = []
+        for n in range(class_num):
+            A = activation[(target_epoch == n)]
+            I = A.shape[0]
+            A_sum = A.to(dtype=torch.float64).sum(dim=0)
+            B = activation[(target_epoch != n)].to(dtype=torch.float64)
+            m_i = torch.zeros(A[0].shape, dtype=torch.float64).to(device)
+            for B_j in B:
+                # print(A_sum - I * B_j)
+                m_i += A_sum - I * B_j
+            
+            m_i = m_i.unsqueeze(-1)
+            # print(A.shape)
+            # print(B.shape)
+            # print(m_i.shape)
 
-        L2_m = torch.norm(m_i, p=2)
+            L2_m = torch.norm(m_i, p=2)
 
-        # print(L2_m)
-        w = m_i / L2_m
-        LS = torch.matmul(w.T, m_i)
-        LS = torch.matmul(LS, LS.T)
-        # print(LS)
-        LS_lst.append(LS)
-        # print(LS_lst)
-    mean = torch.mean(torch.stack(LS_lst), dim=0).item()
-    print(mean)
-    return mean
-    
-    
-    return 1
+            # print(L2_m)
+            w = m_i / L2_m
+            LS = torch.matmul(w.T, m_i)
+            LS = torch.matmul(LS, LS.T)
+            # print(LS)
+            LS_lst.append(LS)
+            # print(LS_lst)
+        mean = torch.mean(torch.stack(LS_lst), dim=0).item()
+        print(mean)
+        return mean
+        
+        
+        return 1
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
@@ -567,7 +573,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     
     # switch to train mode
     model.train()
-    activations.clear()
+    if args.lsm:
+        activations.clear()
     target_lst = []
     
     end = time.time()
@@ -608,6 +615,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             
         exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold, )
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
+            # print(exit_num[idx].item(), x.size(0)*100)
             meter.update(exit_num[idx].item()/x.size(0)*100, x.size(0))  
         for idx, meter in enumerate(per_exit_acc_when_exit_meter):
             meter.update(exit_acc[idx].item(), exit_num[idx].item())
@@ -641,22 +649,20 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     LS_dict = dict()
     target_epoch = torch.cat(target_lst, dim=0)
     
-    activation_keys = list(activations.keys())
-    for name in activation_keys:
-        if activations[name]:
-            activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
-            activations[name] = torch.cat(activations[name], dim=0)
-            LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
-            del activations[name]
-
+    if args.lsm:
+        activation_keys = list(activations.keys())
+        for name in activation_keys:
+            if activations[name]:
+                activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
+                activations[name] = torch.cat(activations[name], dim=0)
+                LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
+                del activations[name]
+        activations.clear()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        print(f'activation cleared')
     # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
     # print(f"Total memory usage by activations: {total_memory / (1024 ** 2):.2f} MB")
-    
-    activations.clear()
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-    print(f'activation cleared')
-    
     
     # ave_top1 = [meter.ave for meter in top1]
     train_loss = losses.ave
@@ -886,12 +892,11 @@ def accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=.7, de
     correct = pred.eq(target.view(1, -1).expand_as(pred))
 
     prob = torch.softmax(output, dim=2)
-    p = ((1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2))
+    p = ((1 / (np.log(output.shape[2]))) * (prob * torch.log(prob)).sum(dim=2)) # p = - normalized entropy
     if device is not None:
         p = p.to(device)  # Move p to the specified device
-    # p = p + 1
-    e = p > threshold
-
+    p = p + 1  # p = 1 - normalized entropy, p > threshold means  normalized entropy < 1 - threshold (i.e. 0.3)
+    e = p > threshold 
     exits = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
     exits_acc = torch.zeros(p.shape[0], 1, device=device)  # Use the specified device
 
