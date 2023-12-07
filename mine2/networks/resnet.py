@@ -59,7 +59,6 @@ class BasicBlock(nn.Module):
             # print(4,num_chan1,num_chan2)
             self.conv2a = conv3x3(num_chan1, num_chan1, stride)
             self.conv2b = conv3x3(num_chan2, num_chan2, stride)   
-            print(downsample) 
             if  downsample != None:
                 print(downsample,self.expansion,stride)
                 if self.beginning:
@@ -128,6 +127,7 @@ class BasicBlock(nn.Module):
             else:
                 if self.beginning:
                     residual = self.downsample(x)
+                    print(residual.shape)
                 else:
                     in_chan1 = math.floor(self.inplanes*self.h_ratio)
                     xa = self.downsample[0](x[:,:in_chan1,:,:])
