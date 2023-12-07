@@ -57,8 +57,8 @@ class BasicBlock(nn.Module):
             num_chan1 = math.floor(planes*h_ratio)
             num_chan2 = planes - num_chan1
             # print(4,num_chan1,num_chan2)
-            self.conv2a = conv3x3(num_chan1, num_chan1, stride)
-            self.conv2b = conv3x3(num_chan2, num_chan2, stride)   
+            self.conv2a = conv3x3(num_chan1, num_chan1)
+            self.conv2b = conv3x3(num_chan2, num_chan2)   
             if  downsample != None:
                 print(downsample,self.expansion,stride)
                 if self.beginning:
