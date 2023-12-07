@@ -34,6 +34,8 @@ class BasicBlock(nn.Module):
         self.beginning = beginning
         self.h_ratio = h_ratio
         self.split = split
+        self.inplanes = inplanes
+        self.planes = planes
         if not split :
             self.conv1 = conv3x3(inplanes, planes, stride)
             self.conv2 = conv3x3(planes, planes)
