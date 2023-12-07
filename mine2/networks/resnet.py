@@ -67,8 +67,8 @@ class BasicBlock(nn.Module):
                         nn.BatchNorm2d(planes * downsample)
                     )
                 else:
-                    in_chan1 = math.floor(inplanes*h_ratio)
-                    in_chan2 = inplanes - in_chan1
+                    in_chan1 = math.floor(planes*h_ratio)
+                    in_chan2 = planes - in_chan1
                     out_chan1 = math.floor(planes*h_ratio)
                     out_chan2 = planes - out_chan1 
                     # print(3,out_chan1,out_chan2,flush=True)
@@ -96,8 +96,8 @@ class BasicBlock(nn.Module):
                 xb = self.conv1b(x)
                 out = torch.cat((xa,xb),dim=1)
             else:
-                out_chan1 = math.floor(self.planes*self.h_ratio)
-                out_chan2 = self.planes - out_chan1
+                out_chan1 = math.floor(self.inplanes*self.h_ratio)
+                out_chan2 = self.inplanes - out_chan1
                 xa = self.conv1a(x[:,:in_chan1,:,:])
                 xb = self.conv1b(x[:,in_chan1:,:,:])
                 out = torch.cat((xa,xb),dim=1)
@@ -112,8 +112,8 @@ class BasicBlock(nn.Module):
             # xa = self.conv2a(out)
             # xb = self.conv2b(out)
             # out = torch.cat((xa,xb),dim=1)
-            in_chan1 = math.floor(self.inplanes*self.h_ratio)
-            in_chan2 = self.inplanes - in_chan1
+            in_chan1 = math.floor(self.planes*self.h_ratio)
+            in_chan2 = self.planes - in_chan1
             xa = self.conv2a(out[:,:in_chan1,:,:])
             xb = self.conv2b(out[:,in_chan1:,:,:])
             out = torch.cat((xa,xb),dim=1)         
