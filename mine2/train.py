@@ -749,6 +749,10 @@ def validate(val_loader, model, epoch):
         with torch.no_grad():
             output, loss = model(img=input_var,
                                  target=target_var,
+                                 ixx_1=args.ixx_1,
+                                 ixy_1=args.ixy_1,
+                                 ixx_2=args.ixx_2,
+                                 ixy_2=args.ixy_2,
                                  no_early_exit_pred = args.no_early_exit_pred)
             
         per_exit_loss = loss
