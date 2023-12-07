@@ -446,9 +446,9 @@ def main():
 
         # train for one epoch
         if args.train_type == 'layer':
-            train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss, train_loss_lst, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict = train(train_loader, model, optimizer, epoch)
+            train_loss,  train_loss_lst_a, train_loss_lst_b, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict = train(train_loader, model, optimizer, epoch)
         
         
         
@@ -457,8 +457,10 @@ def main():
         if not args.no_wandb_log:
             wandb.log({"Train Loss": train_loss}, step=epoch)
             wandb.log({"Train Prec@1": train_prec1}, step=epoch)
-            for idx, loss in enumerate(train_loss_lst):
-                wandb.log({f"Train Loss_{idx}": loss}, step=epoch)
+            for idx, loss in enumerate(train_loss_lst_a):
+                wandb.log({f"Train Loss_a{idx}": loss}, step=epoch)
+            for idx, loss in enumerate(train_loss_lst_b):
+                wandb.log({f"Train Loss_b{idx}": loss}, step=epoch)
             for idx, prec in enumerate(train_prec_lst):
                 wandb.log({f"Train Prec@1_{idx}": prec}, step=epoch)
             for idx, val in enumerate(train_exits_num):
@@ -712,11 +714,12 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     
     # ave_top1 = [meter.ave for meter in top1]
     train_loss = losses.ave
-    train_loss_lst = [meter.ave for meter in per_exit_loss_meter]
+    train_loss_lst_a = [meter.ave for meter in per_exit_loss_meter_a]
+    train_loss_lst_b = [meter.ave for meter in per_exit_loss_meter_b]
     train_prec_lst= [meter.ave for meter in top1],
     train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter],
     train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
-    return train_loss, train_loss_lst, train_prec_lst, train_exits_num, train_exits_acc, LS_dict
+    return train_loss, train_loss_lst_a,train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict
 
 
 def validate(val_loader, model, epoch):
