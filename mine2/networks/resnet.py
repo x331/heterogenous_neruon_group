@@ -102,22 +102,18 @@ class BasicBlock(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
         out = self.dropout(out)
-        print('out1',out.shape)
+        print(f'out1{out.shape}')
 
         if not self.split:
             out = self.conv2(out)
         else:
-            # xa = self.conv2a(out)
-            # xb = self.conv2b(out)
-            # out = torch.cat((xa,xb),dim=1)
             in_chan1 = math.floor(self.planes*self.h_ratio)
-            in_chan2 = self.planes - in_chan1
             xa = self.conv2a(out[:,:in_chan1,:,:])
             xb = self.conv2b(out[:,in_chan1:,:,:])
             out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
-        print('out2', out.shape)
+        print(f'out2{ out.shape}',flush=True)
 
         if self.downsample is not None:
             if not self.split:
