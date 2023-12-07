@@ -563,8 +563,9 @@ class InfoProResNet(nn.Module):
                     if self.infopro_config[local_module_i][0] == stage_i \
                             and self.infopro_config[local_module_i][1] == layer_i:
                         
-                        chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[0])
+                        chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[1])
                         xa_a = x[:,:chan_1,:,:]
+                        print(chan_1)
                         print(x.shape,x[:,:chan_1,:,:].shape,x[:chan_1].shape)
                         xb_a = x[:,chan_1:,:,:]
                         xa_d = xa_a.detach()
