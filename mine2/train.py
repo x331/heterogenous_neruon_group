@@ -655,6 +655,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             meter.update(per_exit_loss[idx][0].item(), x.size(0)) 
         if len(per_exit_loss[0]) > 1:
             for idx, meter in enumerate(per_exit_loss_meter_b):
+                print(idx,per_exit_loss[idx])
                 meter.update(per_exit_loss[idx][1].item(), x.size(0)) 
 
         exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,),threshold=args.confidence_threshold, )
