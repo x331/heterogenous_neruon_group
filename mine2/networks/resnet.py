@@ -565,11 +565,9 @@ class InfoProResNet(nn.Module):
                         
                         chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[1])
                         xa_a = x[:,:chan_1,:,:]
-                        print(chan_1)
-                        print(x.shape,x[:,:chan_1,:,:].shape,x[:chan_1].shape)
                         xb_a = x[:,chan_1:,:,:]
-                        xa_d = xa_a.detach()
-                        xb_d = xb_a.detach()
+                        xa_d = xa_a.detach().clone()
+                        xb_d = xb_a.detach().clone()
                         xa = torch.cat((xa_a,xb_d),dim=1)
                         xb = torch.cat((xa_d,xb_a),dim=1)
                         print(x.shape,xa_a.shape,xa.shape)
