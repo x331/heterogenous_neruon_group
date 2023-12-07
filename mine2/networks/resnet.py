@@ -102,6 +102,7 @@ class BasicBlock(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
         out = self.dropout(out)
+        print('out1',out.shape)
 
         if not self.split:
             out = self.conv2(out)
@@ -116,13 +117,13 @@ class BasicBlock(nn.Module):
             out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
+        print('out2', out.shape)
 
         if self.downsample is not None:
             if not self.split:
                 residual = self.downsample(x)
             else:
                 if self.beginning:
-                    print(self.downsample)
                     residual = self.downsample(x)
                     print('hi',x.shape,residual.shape,out.shape)
                 else:
