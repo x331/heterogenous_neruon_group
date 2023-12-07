@@ -482,9 +482,9 @@ def main():
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
             for idx, loss in enumerate(val_loss_lst_a):
-                wandb.log({f"Train Loss_a{idx}": loss}, step=epoch)
+                wandb.log({f"Val Loss_a{idx}": loss}, step=epoch)
             for idx, loss in enumerate(val_loss_lst_b):
-                wandb.log({f"Train Loss_b{idx}": loss}, step=epoch)                
+                wandb.log({f"Val Loss_b{idx}": loss}, step=epoch)                
             for idx, prec in enumerate(val_prec_lst):
                 wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
             for idx, val in enumerate(val_exits_num):
