@@ -767,7 +767,8 @@ class InfoProResNet(nn.Module):
             if self.train_type == 'local':
                 loss = fc_loss
                 if self.training:
-                    loss.backward()            
+                    loss.backward()
+            print(loss_per_exit)            
             return pred_per_exit, loss_per_exit
 
         else:
