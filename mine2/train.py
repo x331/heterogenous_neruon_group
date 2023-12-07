@@ -639,9 +639,9 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             loss = early_exit_joint_loss(loss)
             loss.backward()
         elif args.train_type == 'layer':
-            loss = loss[curr_module]
+            loss = loss[curr_module][0]
         else:
-            loss = loss[-1]
+            loss = loss[-1][0]
             
         
         optimizer.step()
