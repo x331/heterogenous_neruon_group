@@ -629,9 +629,9 @@ class InfoProResNet(nn.Module):
                         
             for stage_i in (1, 2, 3):
                 for layer_i in range(self.layers[stage_i - 1]):
-                            
+
+                    print(x.shape) 
                     x = eval('self.layer' + str(stage_i))[layer_i](x)
-                    
 
                     if self.h_split == -1:
                         if local_module_i <= self.local_module_num - 2:
