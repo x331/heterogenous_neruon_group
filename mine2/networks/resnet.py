@@ -132,6 +132,7 @@ class BasicBlock(nn.Module):
                     in_chan1 = math.floor(self.inplanes*self.h_ratio)
                     xa = self.downsample[0](x[:,:in_chan1,:,:])
                     xb = self.downsample[1](x[:,in_chan1:,:,:])
+                    print(xa.shape,xb.shape)
                     residual = torch.cat(xa,xb,dim=1)
                     # residual = self.downsample(x)
                 
