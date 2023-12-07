@@ -594,9 +594,11 @@ class InfoProResNet(nn.Module):
                                     for idx,l in enumerate(loss):
                                         if idx == 0:
                                             l.backward(retain_graph=True)    
+                                        else:
+                                            l.backward(retain_graph=False)  
                                 loss_per_exit.append(loss)
                                 pred_per_exit.append(preds)
-                                x = x.detach().clone()
+                                x = x.detach()
 
                         else:
                             print('not supported')
@@ -723,7 +725,9 @@ class InfoProResNet(nn.Module):
                                         if self.training : 
                                             for idx,l in enumerate(loss):
                                                 if idx == 0:
-                                                    l.backward(retain_graph=True)  
+                                                    l.backward(retain_graph=True)
+                                                else:
+                                                    l.backward(retain_graph=False)   
                                         loss_per_exit.append(loss)
                                         pred_per_exit.append(preds)
                                         x = x.detach().clone()
