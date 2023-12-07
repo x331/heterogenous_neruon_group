@@ -140,7 +140,7 @@ args = parser.parse_args()
 training_configurations = {
     'resnet': {
         'epochs': args.train_total_epochs,
-        'batch_size': 512 if args.dataset in ['cifar10', 'svhn'] else 128,
+        'batch_size': 1024 if args.dataset in ['cifar10', 'svhn'] else 128,
         # 'initial_learning_rate': args.lr,
         'initial_learning_rate': args.lr,
         'changing_lr': [args.train_total_epochs//2, args.train_total_epochs//4*3],
