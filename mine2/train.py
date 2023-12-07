@@ -790,8 +790,8 @@ def validate(val_loader, model, epoch):
         fd = open(record_file, 'a+')
         fd.write(string + '\n')
         fd.write(f'per exit a loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter_a)]}'+ '\n')
-            if  len(per_exit_loss[0]) > 1:
-                fd.write(f'per exit b loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter_b)]}'+ '\n')
+        if  len(per_exit_loss[0]) > 1:
+            fd.write(f'per exit b loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter_b)]}'+ '\n')
         fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
         fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
         fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
