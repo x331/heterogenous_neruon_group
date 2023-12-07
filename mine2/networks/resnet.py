@@ -96,8 +96,8 @@ class BasicBlock(nn.Module):
             else:
                 out_chan1 = math.floor(self.planes*self.h_ratio)
                 out_chan2 = self.planes - out_chan1
-                xa = self.conv1a(x[:in_chan1])
-                xb = self.conv1b(x[in_chan1:])
+                xa = self.conv1a(x[:,:in_chan1,:,:])
+                xb = self.conv1b(x[:,in_chan1:,:,:])
                 out = torch.cat((xa,xb),dim=1)
         
         out = self.bn1(out)
@@ -112,8 +112,8 @@ class BasicBlock(nn.Module):
             # out = torch.cat((xa,xb),dim=1)
             in_chan1 = math.floor(self.inplanes*self.h_ratio)
             in_chan2 = self.inplanes - in_chan1
-            xa = self.conv2a(out[:in_chan1])
-            xb = self.conv2b(out[in_chan1:])
+            xa = self.conv2a(out[:,:in_chan1,:,:])
+            xb = self.conv2b(out[:,in_chan1:,:,:])
             out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
@@ -462,6 +462,7 @@ class InfoProResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward_original(self, img):
+        x = 0
         if self.h_split == -1:
             x = self.conv1(img)
         else:
@@ -563,9 +564,9 @@ class InfoProResNet(nn.Module):
                             and self.infopro_config[local_module_i][1] == layer_i:
                         
                         chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[0])
-                        xa_a = x[:,:chan_1]
-                        print(x[:,:chan_1].shape,x[:chan_1].shape)
-                        xb_a = x[:,chan_1:]
+                        xa_a = x[:,:chan_1,:,:]
+                        print(x[:,:chan_1,:,:].shape,x[:chan_1].shape)
+                        xb_a = x[:,chan_1:,:,:]
                         xa_d = xa_a.detach()
                         xb_d = xb_a.detach()
                         xa = torch.cat((xa_a,xb_d),dim=1)
