@@ -729,7 +729,7 @@ class InfoProResNet(nn.Module):
                                             
                                         if self.training : 
                                             for l in loss:
-                                                l.backward()  
+                                                l.backward(retain_graph=True)  
                                             loss.backward()     
                                         loss_per_exit.append(loss)
                                         pred_per_exit.append(preds)
