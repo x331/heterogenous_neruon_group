@@ -134,7 +134,7 @@ class BasicBlock(nn.Module):
                     residual = torch.cat(xa,xb,dim=1)
                     # residual = self.downsample(x)
                 
-        print(out.shape,residual.shape if type(residual) != 'int' else residual)
+        print(out.shape,residual.shape if type(residual) != int else residual)
         out += residual
         out = self.relu(out)
 
