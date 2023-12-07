@@ -123,6 +123,7 @@ class BasicBlock(nn.Module):
                 residual = self.downsample(x)
             else:
                 if self.beginning:
+                    print(self.downsample)
                     residual = self.downsample(x)
                     print(residual.shape)
                 else:
