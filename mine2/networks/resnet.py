@@ -565,7 +565,7 @@ class InfoProResNet(nn.Module):
                         
                         chan_1 = math.floor(self.h_split_ratios[self._get_local_mod_pos(stage_i,layer_i)]*x.shape[0])
                         xa_a = x[:,:chan_1,:,:]
-                        print(x[:,:chan_1,:,:].shape,x[:chan_1].shape)
+                        print(x.shape,x[:,:chan_1,:,:].shape,x[:chan_1].shape)
                         xb_a = x[:,chan_1:,:,:]
                         xa_d = xa_a.detach()
                         xb_d = xb_a.detach()
