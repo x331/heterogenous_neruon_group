@@ -596,7 +596,8 @@ class InfoProResNet(nn.Module):
                                             l.backward(retain_graph=True)    
                                 loss_per_exit.append(loss)
                                 pred_per_exit.append(preds)
-                                x = x.detach()
+                                x = x.detach().clone()
+                                del x
 
                         else:
                             print('not supported')
@@ -726,7 +727,8 @@ class InfoProResNet(nn.Module):
                                                     l.backward(retain_graph=True)  
                                         loss_per_exit.append(loss)
                                         pred_per_exit.append(preds)
-                                        x = x.detach()
+                                        x = x.detach().clone()
+                                        del x
                                                 
 
                                     
