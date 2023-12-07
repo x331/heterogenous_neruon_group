@@ -727,7 +727,8 @@ def validate(val_loader, model, epoch):
     batch_time = AverageMeter()
     losses = AverageMeter()
     top1 = [AverageMeter() for _ in range(model.module.local_module_num)]
-    per_exit_loss_meter = [AverageMeter() for _ in range(model.module.local_module_num)]
+    per_exit_loss_meter_a = [AverageMeter() for _ in range(model.module.local_module_num-1)]
+    per_exit_loss_meter_b = [AverageMeter() for _ in range(model.module.local_module_num-1)]
     per_exit_number_of_exits_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
     per_exit_acc_when_exit_meter =  [AverageMeter() for _ in range(model.module.local_module_num)]
     
@@ -753,15 +754,20 @@ def validate(val_loader, model, epoch):
         if args.train_type == 'joint' or args.train_type == 'layer':
             loss = early_exit_joint_loss(loss)
         else:
-            loss = loss[-1]
+            loss = loss[-1][0]
 
         # measure accuracy and record loss
         prec1 = accuracy_all_exits(output, target, topk=(1,))[0]
         losses.update(loss.data.item(), input.size(0))
         for idx, meter in enumerate(top1):
             meter.update(prec1[idx].item(), input.size(0)) 
-        for idx, meter in enumerate(per_exit_loss_meter):
-            meter.update(per_exit_loss[idx].item(), input.size(0)) 
+
+        for idx, meter in enumerate(per_exit_loss_meter_a):
+            meter.update(per_exit_loss[idx][0].item(), input.size(0)) 
+        if len(per_exit_loss[0]) > 1:
+            for idx, meter in enumerate(per_exit_loss_meter_b):
+                print(idx,per_exit_loss[idx])
+                meter.update(per_exit_loss[idx][1].item(), input.size(0))             
             
         exit_num , exit_acc = accuracy_all_exits_exit_accuracy(output, target, topk=(1,), threshold=args.confidence_threshold)
         for idx, meter in enumerate(per_exit_number_of_exits_meter):
@@ -783,7 +789,9 @@ def validate(val_loader, model, epoch):
     if not args.dry_run:
         fd = open(record_file, 'a+')
         fd.write(string + '\n')
-        fd.write(f'per exit loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter)]}'+ '\n')
+        fd.write(f'per exit a loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter_a)]}'+ '\n')
+            if  len(per_exit_loss[0]) > 1:
+                fd.write(f'per exit b loss: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_loss_meter_b)]}'+ '\n')
         fd.write(f'per exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(top1)]}'+ '\n')
         fd.write(f'per exit number of exits: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_number_of_exits_meter)]}'+ '\n')
         fd.write(f'per exit when exit prec@1: {[(i,meter.value,meter.ave) for i,meter in enumerate(per_exit_acc_when_exit_meter)]}'+ '\n')
