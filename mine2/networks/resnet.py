@@ -117,7 +117,6 @@ class BasicBlock(nn.Module):
             
         out = self.bn2(out)
 
-        residual = 0
         if self.downsample is not None:
             if not self.split:
                 residual = self.downsample(x)
@@ -125,7 +124,7 @@ class BasicBlock(nn.Module):
                 if self.beginning:
                     print(self.downsample)
                     residual = self.downsample(x)
-                    print(residual.shape)
+                    print('hi',x.shape,residual.shape,out.shape)
                 else:
                     in_chan1 = math.floor(self.inplanes*self.h_ratio)
                     xa = self.downsample[0](x[:,:in_chan1,:,:])
