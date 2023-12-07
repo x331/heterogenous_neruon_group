@@ -472,7 +472,7 @@ def main():
                     wandb.log({f"Train LS_{key}": val}, step=epoch)
 
         # evaluate on validation set
-        val_loss, val_loss_lst, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
+        val_loss, val_loss_lst_a,val_loss_lst_b, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
         if args.train_type == 'layer':
             val_prec1 = val_prec_lst[curr_module]
         else:
@@ -481,8 +481,10 @@ def main():
         if not args.no_wandb_log:
             wandb.log({"Val Loss": val_loss}, step=epoch)
             wandb.log({"Val Prec@1": val_prec1}, step=epoch)
-            for idx, loss in enumerate(val_loss_lst):
-                wandb.log({f"Val Loss_{idx}": loss}, step=epoch)
+            for idx, loss in enumerate(val_loss_lst_a):
+                wandb.log({f"Train Loss_a{idx}": loss}, step=epoch)
+            for idx, loss in enumerate(val_loss_lst_b):
+                wandb.log({f"Train Loss_b{idx}": loss}, step=epoch)                
             for idx, prec in enumerate(val_prec_lst):
                 wandb.log({f"Val Prec@1_{idx}": prec}, step=epoch)
             for idx, val in enumerate(val_exits_num):
@@ -800,7 +802,7 @@ def validate(val_loader, model, epoch):
     val_acc.append(top1[-1].ave)
 
     # top1[-1].ave
-    return losses.ave, [meter.ave for meter in per_exit_loss_meter],[meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
+    return losses.ave, [meter.ave for meter in per_exit_loss_meter_a],[meter.ave for meter in per_exit_loss_meter_b],[meter.ave for meter in top1], [meter.ave for meter in per_exit_number_of_exits_meter], [meter.ave for meter in per_exit_acc_when_exit_meter]
 
 
 
