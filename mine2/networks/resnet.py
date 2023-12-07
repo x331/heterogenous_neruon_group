@@ -88,9 +88,6 @@ class BasicBlock(nn.Module):
         if not self.split:
             out = self.conv1(x)
         else:
-            # xa = self.conv1a(x)
-            # xb = self.conv1b(x)
-            # out = torch.cat((xa,xb),dim=1)
             if self.beginning:
                 xa = self.conv1a(x)
                 xb = self.conv1b(x)
