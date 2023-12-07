@@ -523,32 +523,72 @@ def main():
 
 # TODO: Implement this function
 if args.lsm:
-    def per_layer_LS_calc(activation, target_epoch, class_num):
-        
+    def per_layer_LS_calc(activation, target_epoch, class_num, ratio=.1, batch_size=400):
+        N = activation.shape[0]
+        num_samples = int(N * ratio)
+        print(f'num_samples: {num_samples}')
+        subset_indices = torch.randperm(N)[:num_samples]
+        activation = activation[subset_indices]
+        target_epoch = target_epoch[subset_indices]
+
         # target_epoch =target_epoch.to(device='cpu')
         LS_lst = []
         for n in range(class_num):
             A = activation[(target_epoch == n)]
+            A_sum = A.to(dtype=torch.float32).sum(dim=0)
+            B = activation[(target_epoch != n)].to(dtype=torch.float32)
             I = A.shape[0]
-            A_sum = A.to(dtype=torch.float64).sum(dim=0)
-            B = activation[(target_epoch != n)].to(dtype=torch.float64)
-            m_i = torch.zeros(A[0].shape, dtype=torch.float64).to(device)
+            J = B.shape[0]
+            D = A.shape[1]
+
+            m_i = torch.zeros(A[0].shape, dtype=torch.float32).to(device)
             for B_j in B:
                 # print(A_sum - I * B_j)
                 m_i += A_sum - I * B_j
             
+            w = F.normalize(m_i, p=2, dim=0)
             m_i = m_i.unsqueeze(-1)
+            w = w.unsqueeze(-1)
             # print(A.shape)
             # print(B.shape)
-            # print(m_i.shape)
+            print(m_i.shape)
+            print(w.shape)
+            print(torch.matmul(w.T, m_i))
 
-            L2_m = torch.norm(m_i, p=2)
+            # L2_m = torch.norm(m_i, p=2)
 
             # print(L2_m)
-            w = m_i / L2_m
-            LS = torch.matmul(w.T, m_i)
-            LS = torch.matmul(LS, LS.T)
-            # print(LS)
+            # w = m_i / L2_m
+            LS = torch.matmul(w.T, m_i).abs()
+
+            # Initialize the result scalar on GPU
+            r = torch.tensor(0, dtype=torch.float64, device=device)
+            w = (w.T)
+            # Process in batches
+            for start in range(0, J, batch_size):
+                print(start)
+                end = min(start + batch_size, J)
+                B_batch = B[start:end].to(device)
+
+                # Perform operations
+                A_expanded = A.unsqueeze(1)
+                B_batch_expanded = B_batch.unsqueeze(0)
+                diff = A_expanded - B_batch_expanded
+                del A_expanded, B_batch_expanded  # Delete tensors to free up memory
+                diff_reshaped = diff.reshape(-1, D)
+                del diff  # Delete tensor to free up memory
+                weighted_diff = (w @ diff_reshaped.T).reshape(I, -1)
+                del diff_reshaped  # Delete tensor to free up memory
+                r += weighted_diff.abs().sum()
+                del weighted_diff  # Delete tensor to free up memory
+                print('r done')
+
+                # Clear the GPU cache
+                torch.cuda.empty_cache()
+                
+            LS = LS / r
+            
+            print(f'LS for class {n}: {LS}')
             LS_lst.append(LS)
             # print(LS_lst)
         mean = torch.mean(torch.stack(LS_lst), dim=0).item()
