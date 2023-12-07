@@ -102,7 +102,6 @@ class BasicBlock(nn.Module):
         out = self.bn1(out)
         out = self.relu(out)
         out = self.dropout(out)
-        print(f'out1{out.shape}')
 
         if not self.split:
             out = self.conv2(out)
@@ -113,8 +112,6 @@ class BasicBlock(nn.Module):
             out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
-        print('wft')
-        print(f'out2{ out.shape}',flush=True)
 
         if self.downsample is not None:
             if not self.split:
@@ -127,11 +124,9 @@ class BasicBlock(nn.Module):
                     in_chan1 = math.floor(self.inplanes*self.h_ratio)
                     xa = self.downsample[0](x[:,:in_chan1,:,:])
                     xb = self.downsample[1](x[:,in_chan1:,:,:])
-                    print(xa.shape,xb.shape)
                     residual = torch.cat(xa,xb,dim=1)
                     # residual = self.downsample(x)
                 
-        print(out.shape,residual.shape if type(residual) != int else residual)
         out += residual
         out = self.relu(out)
 
@@ -532,20 +527,20 @@ class InfoProResNet(nn.Module):
                                     
                                 if self.training :    
                                     loss.backward()        
-                                loss_per_exit.append(loss)
+                                loss_per_exit.append([loss])
                                 pred_per_exit.append(preds)
                                 x = x.detach()
 
                         else:
                             loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                            loss_per_exit.append(loss_ixy)
+                            loss_per_exit.append([loss_ixy])
                             
                             if self.train_type == 'layer':
                                 # means we reached the classifier of the target module
                                 if target_module == local_module_i:
                                     pred_per_exit.append(preds)
                                     for _ in range(self.local_module_num - 1 - local_module_i):
-                                        loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                        loss_per_exit.append([torch.zeros_like(loss_ixy)])
                                         pred_per_exit.append(torch.zeros_like(preds))
                                         
                                     if self.training:
@@ -661,7 +656,7 @@ class InfoProResNet(nn.Module):
                                             
                                         if self.training : 
                                             loss.backward()     
-                                        loss_per_exit.append(loss)
+                                        loss_per_exit.append([loss])
                                         pred_per_exit.append(preds)
                                         x = x.detach()
                                                 
@@ -669,14 +664,14 @@ class InfoProResNet(nn.Module):
                                     
                                 else:
                                     loss_ixy, preds = eval('self.pred_head_' + str(stage_i) + '_' + str(layer_i))(x, target)
-                                    loss_per_exit.append(loss_ixy)
+                                    loss_per_exit.append([loss_ixy])
                                     
                                     if self.train_type == 'layer':
                                         # means we reached the classifier of the target module
                                         if target_module == local_module_i:
                                             pred_per_exit.append(preds)
                                             for _ in range(self.local_module_num - 1 - local_module_i):
-                                                loss_per_exit.append(torch.zeros_like(loss_ixy))
+                                                loss_per_exit.append([torch.zeros_like(loss_ixy)])
                                                 pred_per_exit.append(torch.zeros_like(preds))
                                             if self.training:
                                                 loss_ixy.backward()
@@ -763,7 +758,7 @@ class InfoProResNet(nn.Module):
             logits = self.fc(x)
             pred_per_exit.append(logits)
             fc_loss = self.criterion_ce(logits, target)
-            loss_per_exit.append(fc_loss)
+            loss_per_exit.append([fc_loss])
             if self.train_type == 'local':
                 loss = fc_loss
                 if self.training:
