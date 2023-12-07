@@ -113,6 +113,7 @@ class BasicBlock(nn.Module):
             out = torch.cat((xa,xb),dim=1)         
             
         out = self.bn2(out)
+        print('wft')
         print(f'out2{ out.shape}',flush=True)
 
         if self.downsample is not None:
