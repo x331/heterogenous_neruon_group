@@ -153,37 +153,39 @@ training_configurations = {
     }
 }
 
-# exp_name = str(args.train_type) \
-#            + '_' + str(args.dataset) \
-#            + '_' + str(args.model) + str(args.layers) \
-#            + '_L-' + str(args.loss_type) \
-#            + ('_ModNum-' + str(args.local_module_num)) \
-#            + ('_ixx1-' + str(args.ixx_1) + '_ixy1-' + str(args.ixy_1) + '_ixx2-' + str(args.ixx_2) + '_ixy2-' + str(args.ixy_2) if args.train_type == 'local' else '') \
-#            + ('_InfoClassRatio-' + str(args.info_class_ratio) if args.loss_type == 'both' else '') \
-#            + '_Epochs-' + str(args.train_total_epochs)
+exp_name = str(args.train_type) \
+           + '_' + str(args.dataset) \
+           + '_' + str(args.model) + str(args.layers) \
+           + '_L-' + str(args.loss_type) \
+           + ('_ModNum-' + str(args.local_module_num)) \
+           + ('_ixx1-' + str(args.ixx_1) + '_ixy1-' + str(args.ixy_1) + '_ixx2-' + str(args.ixx_2) + '_ixy2-' + str(args.ixy_2) if args.train_type == 'local' else '') \
+           + ('_InfoClassRatio-' + str(args.info_class_ratio) if args.loss_type == 'both' else '') \
+           + '_confidence_threshold_' + str(args.confidence_threshold)\
+           + '_Epochs-' + str(args.train_total_epochs) \
+           + '_h_split_' + str(args.h_split)
 
-exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
-              + str(args.dataset) \
-              + '_' + str(args.model) + str(args.layers) \
-              + '_K_' + str(args.local_module_num) \
-              + '_' + str(args.name) \
-              + '/' \
-              + 'no_' + str(args.no) \
-              + '_aux_net_config_' + str(args.aux_net_config) \
-              + '_local_loss_mode_' + str(args.local_loss_mode) \
-              + '_aux_net_widen_' + str(args.aux_net_widen) \
-              + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
-              + '_ixx_1_' + str(args.ixx_1) \
-              + '_ixy_1_' + str(args.ixy_1) \
-              + '_ixx_2_' + str(args.ixx_2) \
-              + '_ixy_2_' + str(args.ixy_2) \
-              + ('_cos_lr_' if args.cos_lr else '') \
-              + '_train_total_epochs_' + str(args.train_total_epochs)\
-              + '_confidence_threshold_' + str(args.confidence_threshold)\
-              + '_train_type_' + str(args.train_type) \
-              + '_loss_type_' + str(args.loss_type) \
-              + '_info_class_ratio_' + str(args.info_class_ratio)\
-              + '_h_split_' + str(args.h_split)
+# exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
+#               + str(args.dataset) \
+#               + '_' + str(args.model) + str(args.layers) \
+#               + '_K_' + str(args.local_module_num) \
+#               + '_' + str(args.name) \
+#               + '/' \
+#               + 'no_' + str(args.no) \
+#               + '_aux_net_config_' + str(args.aux_net_config) \
+#               + '_local_loss_mode_' + str(args.local_loss_mode) \
+#               + '_aux_net_widen_' + str(args.aux_net_widen) \
+#               + '_aux_net_feature_dim_' + str(args.aux_net_feature_dim) \
+#               + '_ixx_1_' + str(args.ixx_1) \
+#               + '_ixy_1_' + str(args.ixy_1) \
+#               + '_ixx_2_' + str(args.ixx_2) \
+#               + '_ixy_2_' + str(args.ixy_2) \
+#               + ('_cos_lr_' if args.cos_lr else '') \
+#               + '_train_total_epochs_' + str(args.train_total_epochs)\
+#               + '_confidence_threshold_' + str(args.confidence_threshold)\
+#               + '_train_type_' + str(args.train_type) \
+#               + '_loss_type_' + str(args.loss_type) \
+#               + '_info_class_ratio_' + str(args.info_class_ratio)\
+#               + '_h_split_' + str(args.h_split)
                  
                                             
 record_path = './logs/' + exp_name
