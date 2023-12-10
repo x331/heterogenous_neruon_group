@@ -132,8 +132,10 @@ parser.add_argument('--print-freq', default=1, type=int,
 parser.add_argument('--lsm', dest='lsm', action='store_true',
                     help='linear seperability measure')
 parser.set_defaults(lsm=False)
-
-
+parser.add_argument('--lsm_batch_size', dest='lsm_batch_size', default=400, type=int,
+                    help='batch size during lsm (default: 400 for 16GB GPU memory)')
+parser.add_argument('--lsm_ratio', dest='lsm_ratio', default=.1, type=float,
+                    help='ratio of sample use for LSM (default: 0.1)')
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
@@ -448,9 +450,9 @@ def main():
 
         # train for one epoch
         if args.train_type == 'layer':
-            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss,  train_loss_lst_a, train_loss_lst_b, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict = train(train_loader, model, optimizer, epoch)
+            train_loss,  train_loss_lst_a, train_loss_lst_b, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict = train(train_loader, model, optimizer, epoch)
         
         
         
@@ -472,6 +474,9 @@ def main():
             if args.lsm:
                 for key, val in enumerate(LS_dict.items()):
                     wandb.log({f"Train LS_{key}": val}, step=epoch)
+                for key, val in enumerate(per_class_LS_dict.items()):
+                    for i, per_class_entropy in enumerate(val):
+                        wandb.log({f"Train LS_{key} Class_{i}": per_class_entropy}, step=epoch)
 
         # evaluate on validation set
         val_loss, val_loss_lst_a,val_loss_lst_b, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
@@ -529,80 +534,116 @@ def main():
 
 # TODO: Implement this function
 if args.lsm:
-    def per_layer_LS_calc(activation, target_epoch, class_num, ratio=.1, batch_size=400):
-        N = activation.shape[0]
-        num_samples = int(N * ratio)
-        print(f'num_samples: {num_samples}')
-        subset_indices = torch.randperm(N)[:num_samples]
-        activation = activation[subset_indices]
-        target_epoch = target_epoch[subset_indices]
+    if args.lsm_batch_size > 0:
+        def per_layer_LS_calc(activation, target_epoch, class_num, ratio=args.lsm_ratio):
+            batch_size = args.lsm_batch_size
+            N = activation.shape[0]
+            num_samples = int(N * ratio)
+            print(f'num_samples: {num_samples}')
+            subset_indices = torch.randperm(N)[:num_samples]
+            activation = activation[subset_indices].to(device)
+            target_epoch = target_epoch[subset_indices].to(device)
 
-        # target_epoch =target_epoch.to(device='cpu')
-        LS_lst = []
-        for n in range(class_num):
-            A = activation[(target_epoch == n)]
-            A_sum = A.to(dtype=torch.float32).sum(dim=0)
-            B = activation[(target_epoch != n)].to(dtype=torch.float32)
-            I = A.shape[0]
-            J = B.shape[0]
-            D = A.shape[1]
+            LS_tensor = torch.zeros(class_num, device=device)
+            weights_tensor = torch.zeros(class_num, device=device)
 
-            m_i = torch.zeros(A[0].shape, dtype=torch.float32).to(device)
-            for B_j in B:
-                # print(A_sum - I * B_j)
-                m_i += A_sum - I * B_j
-            
-            w = F.normalize(m_i, p=2, dim=0)
-            m_i = m_i.unsqueeze(-1)
-            w = w.unsqueeze(-1)
-            # print(A.shape)
-            # print(B.shape)
-            print(m_i.shape)
-            print(w.shape)
-            print(torch.matmul(w.T, m_i))
+            for n in range(class_num):
+                A = activation[(target_epoch == n)].to(dtype=torch.float32)
+                
+                A_sum = A.sum(dim=0)
+                B = activation[(target_epoch != n)].to(dtype=torch.float32)
+                I = A.shape[0]
+                J = B.shape[0]
+                D = A.shape[1]
+                weights_tensor[n] = I
+                m_i = torch.zeros(A[0].shape, dtype=torch.float32, device=device)
 
-            # L2_m = torch.norm(m_i, p=2)
+                for B_j in (I *B):
+                    m_i.add_((A_sum - B_j), alpha=-1)  # In-place subtraction with scaling
 
-            # print(L2_m)
-            # w = m_i / L2_m
-            LS = torch.matmul(w.T, m_i).abs()
+                w = F.normalize(m_i, p=2, dim=0)
+                m_i = m_i.unsqueeze(-1)
+                w = w.unsqueeze(-1)
+                
+                LS = torch.matmul(w.T, m_i).abs()
 
-            # Initialize the result scalar on GPU
-            r = torch.tensor(0, dtype=torch.float64, device=device)
-            w = (w.T)
-            # Process in batches
-            for start in range(0, J, batch_size):
-                print(start)
-                end = min(start + batch_size, J)
-                B_batch = B[start:end].to(device)
+                # Initialize the result scalar on GPU
+                r = torch.tensor(0, dtype=torch.float64, device=device)
+                w = w.T
 
-                # Perform operations
+                # Process in batches
                 A_expanded = A.unsqueeze(1)
-                B_batch_expanded = B_batch.unsqueeze(0)
-                diff = A_expanded - B_batch_expanded
-                del A_expanded, B_batch_expanded  # Delete tensors to free up memory
+                del A
+                
+                for start in range(0, J, batch_size):
+                    end = min(start + batch_size, J)
+                    B_batch = B[start:end]
+                    B_batch_expanded = B_batch.unsqueeze(0)
+                    diff = A_expanded - B_batch_expanded
+                    del B_batch_expanded
+                    diff_reshaped = diff.reshape(-1, D)
+                    del diff
+
+                    weighted_diff = (w @ diff_reshaped.T).reshape(I, -1)
+                    del diff_reshaped
+                    r.add_(weighted_diff.abs().sum())  # In-place addition
+                    del weighted_diff
+                    # Clear the GPU cache
+                    torch.cuda.empty_cache()
+                
+                LS_tensor[n] = LS / r
+            mean = torch.mean(LS_tensor)
+            weighted_mean = torch.sum(LS_tensor * weights_tensor) / torch.sum(weights_tensor)
+            print(f"Mean: {mean.item():.4f}, Weighted mean: {weighted_mean.item():.4f}")
+            return LS_tensor.to('cpu'), weighted_mean.item()
+    else:      
+        def per_layer_LS_calc(activation, target_epoch, class_num=2, ratio=args.lsm_ratio):
+            N = activation.shape[0]
+            num_samples = int(N * ratio)
+            print(f'num_samples: {num_samples}')
+            subset_indices = torch.randperm(N)[:num_samples]
+            activation = activation[subset_indices]
+            target_epoch = target_epoch[subset_indices]
+
+            # target_epoch =target_epoch.to(device='cpu')
+            LS_tensor = torch.zeros(class_num, device=device)
+            weights_tensor = torch.zeros(class_num, device=device)
+            for n in range(class_num):
+                A = activation[(target_epoch == n)].to(dtype=torch.float32)
+                B = activation[(target_epoch != n)].to(dtype=torch.float32)
+                I, D = A.shape[0], A.shape[1]
+                
+                weights_tensor[n] = I
+                
+                A_expanded = A.unsqueeze(1)
+                B_expanded = B.unsqueeze(0)
+                diff = A_expanded - B_expanded
+                del A_expanded, B_expanded
+                
+                m_i = diff.sum(dim=(0, 1))
+                w = F.normalize(m_i, p=2, dim=0)
+                m_i = m_i.unsqueeze(-1)
+                w = w.unsqueeze(-1).T
+
+                numerator = torch.matmul(w, m_i).abs()
+
                 diff_reshaped = diff.reshape(-1, D)
-                del diff  # Delete tensor to free up memory
+                del diff
                 weighted_diff = (w @ diff_reshaped.T).reshape(I, -1)
-                del diff_reshaped  # Delete tensor to free up memory
-                r += weighted_diff.abs().sum()
-                del weighted_diff  # Delete tensor to free up memory
-                print('r done')
+                del diff_reshaped
+
+                denominator = weighted_diff.abs().sum()
+                del weighted_diff
 
                 # Clear the GPU cache
                 torch.cuda.empty_cache()
                 
-            LS = LS / r
-            
-            print(f'LS for class {n}: {LS}')
-            LS_lst.append(LS)
-            # print(LS_lst)
-        mean = torch.mean(torch.stack(LS_lst), dim=0).item()
-        print(mean)
-        return mean
-        
-        
-        return 1
+                LS_tensor[n] = numerator / denominator
+
+            weighted_mean = torch.sum(LS_tensor * weights_tensor) / torch.sum(weights_tensor)
+
+            return LS_tensor.to('cpu'), weighted_mean.item()
+
 
 def train(train_loader, model, optimizer, epoch, curr_module=None):
     """Train for one epoch on the training set"""
@@ -698,6 +739,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     # After training loop
     
     LS_dict = dict()
+    per_class_LS_dict = dict()
     target_epoch = torch.cat(target_lst, dim=0)
     
     if args.lsm:
@@ -706,7 +748,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
             if activations[name]:
                 activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
                 activations[name] = torch.cat(activations[name], dim=0)
-                LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
+                per_class_LS_dict[name], LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
                 del activations[name]
         activations.clear()
         if torch.cuda.is_available():
@@ -722,7 +764,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     train_prec_lst= [meter.ave for meter in top1],
     train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter],
     train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
-    return train_loss, train_loss_lst_a,train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict
+    return train_loss, train_loss_lst_a,train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict
 
 
 def validate(val_loader, model, epoch):
