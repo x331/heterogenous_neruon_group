@@ -136,6 +136,10 @@ parser.add_argument('--lsm_batch_size', dest='lsm_batch_size', default=400, type
                     help='batch size during lsm (default: 400 for 16GB GPU memory)')
 parser.add_argument('--lsm_ratio', dest='lsm_ratio', default=.1, type=float,
                     help='ratio of sample use for LSM (default: 0.1)')
+parser.add_argument('--wandb_name', dest='wandb_name', default='', type=str, help='name of the wandb run')
+
+
+
 args = parser.parse_args()
 
 # Configurations adopted for training deep networks.
@@ -165,6 +169,9 @@ exp_name = str(args.train_type) \
            + '_confidence_threshold_' + str(args.confidence_threshold)\
            + '_Epochs-' + str(args.train_total_epochs) \
            + '_h_split_' + str(args.h_split)
+
+if args.wandb_name != '':
+    exp_name = args.wandb_name
 
 # exp_name = ('InfoPro*_' if args.balanced_memory else 'InfoPro_') \
 #               + str(args.dataset) \
@@ -450,9 +457,9 @@ def main():
 
         # train for one epoch
         if args.train_type == 'layer':
-            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict= train(train_loader, model, optimizer, epoch, curr_module)
+            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict = train(train_loader, model, optimizer, epoch, curr_module)
         else:
-            train_loss,  train_loss_lst_a, train_loss_lst_b, train_prec_lst,  train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict = train(train_loader, model, optimizer, epoch)
+            train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict = train(train_loader, model, optimizer, epoch)
         
         
         
@@ -472,10 +479,13 @@ def main():
             for idx, val in enumerate(train_exits_acc):
                 wandb.log({f"Train Prec@1 when exit at_{idx}": val}, step=epoch)
             if args.lsm:
-                for key, val in enumerate(LS_dict.items()):
+                for key, val in LS_dict.items():
+                    # print(f"Wandb log Train LS_{key}: {val}")
                     wandb.log({f"Train LS_{key}": val}, step=epoch)
-                for key, val in enumerate(per_class_LS_dict.items()):
+                for key, val in per_class_LS_dict.items():
+                    # print(f"Wandb log per_layer Train LS_{key}: {val}")
                     for i, per_class_entropy in enumerate(val):
+                        # print(f"Wandb log per_layer Train LS_{key} Class_{i}: {per_class_entropy}")
                         wandb.log({f"Train LS_{key} Class_{i}": per_class_entropy}, step=epoch)
 
         # evaluate on validation set
@@ -548,6 +558,12 @@ if args.lsm:
             weights_tensor = torch.zeros(class_num, device=device)
 
             for n in range(class_num):
+                
+                # if n > 0:
+                #     LS_tensor[n] = 0
+                #     weights_tensor[n] = 0
+                #     continue
+                
                 A = activation[(target_epoch == n)].to(dtype=torch.float32)
                 
                 A_sum = A.sum(dim=0)
@@ -592,6 +608,9 @@ if args.lsm:
                     torch.cuda.empty_cache()
                 
                 LS_tensor[n] = LS / r
+                
+                
+                
             mean = torch.mean(LS_tensor)
             weighted_mean = torch.sum(LS_tensor * weights_tensor) / torch.sum(weights_tensor)
             print(f"Mean: {mean.item():.4f}, Weighted mean: {weighted_mean.item():.4f}")
@@ -749,11 +768,11 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                 activations[name] = [tensor.to(device, non_blocking=True) for tensor in activations[name]]
                 activations[name] = torch.cat(activations[name], dim=0)
                 per_class_LS_dict[name], LS_dict[name] = per_layer_LS_calc(activations[name], target_epoch, class_num)
+                # print(f"LS for {name}: {LS_dict[name]:.4f}")
+                # print(f"per class LS for {name}: {per_class_LS_dict[name]}")
                 del activations[name]
         activations.clear()
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        print(f'activation cleared')
+
     # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
     # print(f"Total memory usage by activations: {total_memory / (1024 ** 2):.2f} MB")
     
@@ -761,10 +780,12 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     train_loss = losses.ave
     train_loss_lst_a = [meter.ave for meter in per_exit_loss_meter_a]
     train_loss_lst_b = [meter.ave for meter in per_exit_loss_meter_b]
-    train_prec_lst= [meter.ave for meter in top1],
-    train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter],
+    train_prec_lst = [meter.ave for meter in top1]
+    train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter]
     train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
-    return train_loss, train_loss_lst_a,train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict
+    
+    
+    return train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict
 
 
 def validate(val_loader, model, epoch):
