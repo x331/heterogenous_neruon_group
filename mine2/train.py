@@ -772,6 +772,7 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
                 # print(f"per class LS for {name}: {per_class_LS_dict[name]}")
                 del activations[name]
         activations.clear()
+      
 
     # total_memory = sum(estimate_memory_usage(tensor) for tensor in activations.values())
     # print(f"Total memory usage by activations: {total_memory / (1024 ** 2):.2f} MB")
@@ -788,7 +789,8 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     fd.write(f'LS_dict: {LS_dict}'+ '\n')
     fd.write(f'per_class_LS_dict: {per_class_LS_dict}'+ '\n')
     fd.close()
-    
+    torch.cuda.empty_cache()
+  
     return train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict
 
 
