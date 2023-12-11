@@ -482,11 +482,11 @@ def main():
                 for key, val in LS_dict.items():
                     # print(f"Wandb log Train LS_{key}: {val}")
                     wandb.log({f"Train LS_{key}": val}, step=epoch)
-                for key, val in per_class_LS_dict.items():
-                    # print(f"Wandb log per_layer Train LS_{key}: {val}")
-                    for i, per_class_entropy in enumerate(val):
-                        # print(f"Wandb log per_layer Train LS_{key} Class_{i}: {per_class_entropy}")
-                        wandb.log({f"Train LS_{key} Class_{i}": per_class_entropy}, step=epoch)
+                # for key, val in per_class_LS_dict.items():
+                #     # print(f"Wandb log per_layer Train LS_{key}: {val}")
+                #     for i, per_class_entropy in enumerate(val):
+                #         # print(f"Wandb log per_layer Train LS_{key} Class_{i}: {per_class_entropy}")
+                #         wandb.log({f"Train LS_{key} Class_{i}": per_class_entropy}, step=epoch)
 
         # evaluate on validation set
         val_loss, val_loss_lst_a,val_loss_lst_b, val_prec_lst,  val_exits_num, val_exits_acc = validate(val_loader, model, epoch)
@@ -784,6 +784,10 @@ def train(train_loader, model, optimizer, epoch, curr_module=None):
     train_exits_num = [meter.ave for meter in per_exit_number_of_exits_meter]
     train_exits_acc = [meter.ave for meter in per_exit_acc_when_exit_meter]
     
+    fd = open(loss_file, 'a+')
+    fd.write(f'LS_dict: {LS_dict}'+ '\n')
+    fd.write(f'per_class_LS_dict: {per_class_LS_dict}'+ '\n')
+    fd.close()
     
     return train_loss, train_loss_lst_a, train_loss_lst_b, train_prec_lst, train_exits_num, train_exits_acc, LS_dict, per_class_LS_dict
 
