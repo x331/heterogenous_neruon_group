@@ -43,6 +43,9 @@ InfoPro = {
 
 h_split_ratios = {
     'resnet32': {
+        2: {
+            -1: [None],
+        },
         4: {
             -1: [None],
             0: [.5, .5, .5,],   
